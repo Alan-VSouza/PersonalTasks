@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.alansouza.personaltasks.adapter.TaskAdapter
 import com.alansouza.personaltasks.data.AppDatabase
 import com.alansouza.personaltasks.data.TaskDao
+import com.alansouza.personaltasks.model.Task
 
 
 class MainActivity : AppCompatActivity() {
@@ -20,6 +21,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var taskAdapter: TaskAdapter
     private lateinit var taskDao: TaskDao
     private lateinit var toolbar: Toolbar
+
+    private var selectedTaskForContextMenu: Task? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,6 +49,10 @@ class MainActivity : AppCompatActivity() {
         recyclerViewTasks.adapter = taskAdapter
 
         loadAndObserveTasks()
+    }
+
+    fun setSelectedTaskForContextMenu(task: Task) {
+        selectedTaskForContextMenu = task
     }
 
     private fun loadAndObserveTasks() {
