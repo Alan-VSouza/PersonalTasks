@@ -18,5 +18,7 @@
     <string name="label_importance_level">Nível de Importância:</string>
     <string name="button_cancel">Cancelar</string>
     <string name="button_save">Salvar</string>
+    <string name="task_updated_successfully">Tarefa atualizada com sucesso!</string>
+    <string name="task_created_successfully">Tarefa criada com sucesso!</string>
 
 </resources>

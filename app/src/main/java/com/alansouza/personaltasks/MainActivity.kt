@@ -1,10 +1,13 @@
 package com.alansouza.personaltasks
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
@@ -26,6 +29,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var taskDao: TaskDao
     private lateinit var toolbar: Toolbar
     private lateinit var newTaskLauncher: ActivityResultLauncher<Intent>
+    private lateinit var editTaskLauncher: ActivityResultLauncher<Intent>
 
     private var selectedTaskForContextMenu: Task? = null
 
@@ -43,6 +47,12 @@ class MainActivity : AppCompatActivity() {
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
+        }
+
+        editTaskLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                Toast.makeText(this, getString(R.string.task_updated_successfully), Toast.LENGTH_SHORT).show()
+            }
         }
 
         taskDao = AppDatabase.getDatabase(applicationContext).taskDao()
@@ -65,6 +75,36 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    override fun onContextItemSelected(item: MenuItem): Boolean {
+        val currentTask = selectedTaskForContextMenu
+            ?: return super.onContextItemSelected(item)
+
+        return when (item.itemId) {
+            R.id.action_edit_task -> {
+                val intent = Intent(this, TaskDetailActivity::class.java)
+                intent.putExtra("MODE", "EDIT")
+                intent.putExtra("TASK_ID", currentTask.id)
+                editTaskLauncher.launch(intent)
+                true
+            }
+            R.id.action_delete_task -> {
+                showDeleteConfirmationDialog(currentTask)
+                true
+            }
+            R.id.action_details_task -> {
+                val intent = Intent(this, TaskDetailActivity::class.java)
+                intent.putExtra("MODE", "DETAILS")
+                intent.putExtra("TASK_ID", currentTask.id)
+                startActivity(intent)
+                true
+            }
+            else -> {
+                selectedTaskForContextMenu = null
+                super.onContextItemSelected(item)
+            }
         }
     }
 
