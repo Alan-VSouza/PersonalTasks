@@ -1,4 +1,22 @@
 <resources>
-    <string name="app_name">PersonalTasks2</string>
+    <string name="app_name">Simplify</string>
     <string name="due_date_format">Data Limite: %1$s</string>
+    <string name="toast_task_updated">Tarefa atualizada!</string>
+    <string name="toast_task_saved">Tarefa salva!</string>
+    <string name="error_title_empty">Título não pode ser vazio</string>
+    <string name="error_due_date_empty">Data limite não pode ser vazia</string>
+    <string name="importance_high">Alta</string>
+    <string name="importance_medium">Média</string>
+    <string name="importance_light">Baixa</string>
+    <string name="title_new_task">Nova Tarefa</string>
+    <string name="title_edit_task">Editar Tarefa</string>
+    <string name="title_task_details">Detalhes da Tarefa</string>
+    <string name="task_details_title">Detalhes da Tarefa</string>
+    <string name="hint_task_title">Título da Tarefa</string>
+    <string name="hint_task_description">Descrição</string>
+    <string name="hint_due_date">Data Limite</string>
+    <string name="label_importance_level">Nível de Importância:</string>
+    <string name="button_cancel">Cancelar</string>
+    <string name="button_save">Salvar</string>
+
 </resources>

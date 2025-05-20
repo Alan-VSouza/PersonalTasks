@@ -2,4 +2,9 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="grey_light">#B0BEC5</color>
+    <color name="grey_medium">#78909C</color>
+    <color name="toolbar_dark_background">#212121</color>
+    <color name="button_save_background">#FFFFFF</color>
+    <color name="button_save_text">#000000</color>
 </resources>
