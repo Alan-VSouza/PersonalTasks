@@ -1,96 +1,96 @@
 package com.alansouza.personaltasks.adapter
 
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import android.widget.TextView
-import androidx.appcompat.widget.PopupMenu
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.alansouza.personaltasks.MainActivity
 import com.alansouza.personaltasks.R
+import com.alansouza.personaltasks.model.ImportanceLevel
 import com.alansouza.personaltasks.model.Task
 
-class TaskAdapter() :
-    ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallback()) {
+class TaskAdapter : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
-        val itemView = LayoutInflater.from(parent.context)
+        val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_task_layout, parent, false)
-        return TaskViewHolder(itemView)
+        return TaskViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
-        val currentTask = getItem(position)
-        holder.bind(currentTask)
+        val task = getItem(position)
+        holder.bind(task)
     }
 
     inner class TaskViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-
-        private val textViewTitle: TextView = itemView.findViewById(R.id.textViewTaskTitle)
-        private val textViewDescription: TextView = itemView.findViewById(R.id.textViewTaskDescription)
-        private val textViewDueDate: TextView = itemView.findViewById(R.id.textViewTaskDueDate)
-
-        private lateinit var currentBoundTask: Task
+        private val titleTextView: TextView = itemView.findViewById(R.id.textViewTaskTitle)
+        private val descriptionTextView: TextView = itemView.findViewById(R.id.textViewTaskDescription)
+        private val dueDateTextView: TextView = itemView.findViewById(R.id.textViewTaskDueDate)
+        private val importanceIndicatorView: View = itemView.findViewById(R.id.viewImportanceIndicator)
 
         init {
-
-            itemView.setOnLongClickListener { viewClicked ->
-                if (itemView.context is MainActivity) {
-                    (itemView.context as MainActivity).setSelectedTaskForContextMenu(currentBoundTask)
-                } else {
-                    Log.w("TaskAdapter", "Contexto do ViewHolder não é MainActivity.")
+            itemView.setOnLongClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    val task = getItem(position)
+                    showPopupMenu(itemView, task)
                 }
-
-                showPopupMenu(viewClicked)
                 true
             }
         }
 
         fun bind(task: Task) {
-            currentBoundTask = task
-            textViewTitle.text = task.title
-            textViewDescription.text = task.description
-            textViewDueDate.text = itemView.context.getString(R.string.due_date_format, task.dueDate)
+            titleTextView.text = task.title
+            descriptionTextView.text = task.description
+            if (task.description.isEmpty()) {
+                descriptionTextView.visibility = View.GONE
+            } else {
+                descriptionTextView.visibility = View.VISIBLE
+            }
+            dueDateTextView.text = itemView.context.getString(R.string.due_date_format, task.dueDate)
+
+            val importanceColor = when (task.importance) {
+                ImportanceLevel.HIGH -> ContextCompat.getColor(itemView.context, R.color.importance_high_color)
+                ImportanceLevel.MEDIUM -> ContextCompat.getColor(itemView.context, R.color.importance_medium_color)
+                ImportanceLevel.LIGHT -> ContextCompat.getColor(itemView.context, R.color.importance_light_color)
+            }
+            importanceIndicatorView.setBackgroundColor(importanceColor)
         }
 
-        private fun showPopupMenu(anchorView: View) {
-            val context = anchorView.context
-            val popup = PopupMenu(context, anchorView)
-            popup.menuInflater.inflate(R.menu.context_menu_task, popup.menu)
+        private fun showPopupMenu(view: View, task: Task) {
+            val popupMenu = PopupMenu(view.context, view)
+            popupMenu.inflate(R.menu.context_menu_task)
+            popupMenu.setOnMenuItemClickListener { menuItem ->
+                val activity = view.context as? MainActivity
+                activity?.setSelectedTaskForContextMenu(task)
+                activity?.onContextItemSelected(menuItem) ?: false
+            }
 
             try {
                 val fieldMPopup = PopupMenu::class.java.getDeclaredField("mPopup")
                 fieldMPopup.isAccessible = true
-                val mPopup = fieldMPopup.get(popup)
+                val mPopup = fieldMPopup.get(popupMenu)
                 mPopup.javaClass
-                    .getDeclaredMethod("setForceShowIcon", Boolean::class.javaPrimitiveType)
+                    .getDeclaredMethod("setForceShowIcon", Boolean::class.java)
                     .invoke(mPopup, true)
             } catch (e: Exception) {
-                Log.e("TaskAdapter", "Erro ao forçar exibição de ícones no PopupMenu", e)
             }
+            popupMenu.show()
+        }
+    }
 
-            popup.setOnMenuItemClickListener { menuItem ->
-                if (context is MainActivity) {
-
-                    return@setOnMenuItemClickListener context.onContextItemSelected(menuItem)
-                }
-                false
-            }
-            popup.show()
+    class TaskDiffCallback : DiffUtil.ItemCallback<Task>() {
+        override fun areItemsTheSame(oldItem: Task, newItem: Task): Boolean {
+            return oldItem.id == newItem.id
         }
 
-    }
-}
-
-class TaskDiffCallback : DiffUtil.ItemCallback<Task>() {
-    override fun areItemsTheSame(oldItem: Task, newItem: Task): Boolean {
-        return oldItem.id == newItem.id
-    }
-
-    override fun areContentsTheSame(oldItem: Task, newItem: Task): Boolean {
-        return oldItem == newItem
+        override fun areContentsTheSame(oldItem: Task, newItem: Task): Boolean {
+            return oldItem == newItem
+        }
     }
 }

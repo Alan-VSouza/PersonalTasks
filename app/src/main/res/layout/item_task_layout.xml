@@ -6,7 +6,7 @@
     android:id="@+id/task_item_card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardBackgroundColor="#2C2C2E"
+    app:cardBackgroundColor="@color/card_background_dark"
     app:cardCornerRadius="8dp"
     app:cardElevation="2dp"
     android:layout_marginStart="8dp"
@@ -15,41 +15,54 @@
     android:layout_marginBottom="4dp">
 
     <LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="16dp">
-
-    <TextView
-        android:id="@+id/textViewTaskTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        tools:text="Título da Tarefa Bem Grande Para Testar o Ellipsize"
-        android:textColor="#FFFFFF"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:maxLines="1"
-        android:ellipsize="end"/>
+        android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/textViewTaskDescription"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        tools:text="Esta é uma descrição um pouco mais longa da tarefa para vermos como ela se comporta e se ajusta em múltiplas linhas, até o limite definido."
-        android:textColor="#E0E0E0"
-        android:textSize="14sp"
-        android:layout_marginTop="4dp"
-        android:maxLines="2"
-        android:ellipsize="end"/>
+        <View
+            android:id="@+id/viewImportanceIndicator"
+            android:layout_width="6dp"
+            android:layout_height="match_parent"
+            android:background="@color/grey_medium" />
 
-    <TextView
-        android:id="@+id/textViewTaskDueDate"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        tools:text="Data Limite: 25/12/2025"
-        android:textColor="#A0A0A0"
-        android:textSize="12sp"
-        android:layout_marginTop="8dp"/>
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="16dp">
 
+            <TextView
+                android:id="@+id/textViewTaskTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:text="Título da Tarefa Bem Grande Para Testar o Ellipsize"
+                android:textColor="@color/text_primary_light"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"/>
+
+            <TextView
+                android:id="@+id/textViewTaskDescription"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque mattis tempus laoreet. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Vivamus mattis neque mauris. Fusce sed accumsan augue, quis lobortis neque."
+                android:textColor="@color/text_secondary_light"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp"
+                android:maxLines="2"
+                android:ellipsize="end"/>
+
+            <TextView
+                android:id="@+id/textViewTaskDueDate"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                tools:text="Data Limite: 25/12/2025"
+                android:textColor="@color/text_tertiary_light"
+                android:textSize="12sp"
+                android:layout_marginTop="8dp"/>
+
+        </LinearLayout>
     </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+</com.google.android.material.card.MaterialCardView>

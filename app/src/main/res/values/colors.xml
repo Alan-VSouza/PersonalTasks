@@ -7,4 +7,11 @@
     <color name="toolbar_dark_background">#212121</color>
     <color name="button_save_background">#FFFFFF</color>
     <color name="button_save_text">#000000</color>
+    <color name="card_background_dark">#2C2C2E</color>
+    <color name="text_primary_light">#FFFFFF</color>
+    <color name="text_secondary_light">#E0E0E0</color>
+    <color name="text_tertiary_light">#A0A0A0</color>
+    <color name="importance_light_color">#4CAF50</color>
+    <color name="importance_medium_color">#FFC107</color>
+    <color name="importance_high_color">#F44336</color>
 </resources>
