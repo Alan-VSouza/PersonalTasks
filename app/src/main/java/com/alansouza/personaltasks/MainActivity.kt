@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
+import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
@@ -23,7 +24,6 @@ import com.alansouza.personaltasks.data.AppDatabase
 import com.alansouza.personaltasks.data.TaskDao
 import com.alansouza.personaltasks.model.Task
 import kotlinx.coroutines.launch
-import kotlin.jvm.java
 
 
 class MainActivity : AppCompatActivity() {
@@ -53,6 +53,12 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        newTaskLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                Toast.makeText(this, getString(R.string.task_created_successfully), Toast.LENGTH_SHORT).show()
+            }
+        }
+
         editTaskLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
                 Toast.makeText(this, getString(R.string.task_updated_successfully), Toast.LENGTH_SHORT).show()
@@ -68,6 +74,12 @@ class MainActivity : AppCompatActivity() {
         recyclerViewTasks.adapter = taskAdapter
 
         loadAndObserveTasks()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        val inflater: MenuInflater = menuInflater
+        inflater.inflate(R.menu.menu_main, menu)
+        return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
