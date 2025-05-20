@@ -8,6 +8,7 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -34,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var toolbar: Toolbar
     private lateinit var newTaskLauncher: ActivityResultLauncher<Intent>
     private lateinit var editTaskLauncher: ActivityResultLauncher<Intent>
+    private lateinit var textViewEmptyTasks: TextView
 
     private var selectedTaskForContextMenu: Task? = null
 
@@ -65,6 +67,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        textViewEmptyTasks = findViewById(R.id.textViewEmptyTasks)
         taskDao = AppDatabase.getDatabase(applicationContext).taskDao()
 
         recyclerViewTasks = findViewById(R.id.recyclerViewTasks)
@@ -130,8 +133,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadAndObserveTasks() {
         taskDao.getAllTasks().observe(this, Observer { tasks ->
-            tasks?.let {
-                taskAdapter.submitList(it)
+            if (tasks.isNullOrEmpty()) {
+                recyclerViewTasks.visibility = View.GONE
+                textViewEmptyTasks.visibility = View.VISIBLE
+            } else {
+                recyclerViewTasks.visibility = View.VISIBLE
+                textViewEmptyTasks.visibility = View.GONE
+                taskAdapter.submitList(tasks)
             }
         })
     }
