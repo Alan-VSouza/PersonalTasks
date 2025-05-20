@@ -2,11 +2,16 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/action_edit_task"
-        android:title="Editar tarefa" />
+        android:icon="@drawable/baseline_edit_24"
+        android:title="@string/action_edit_task" />
+
     <item
         android:id="@+id/action_delete_task"
-        android:title="Excluir tarefa" />
+        android:icon="@drawable/baseline_delete_forever_24"
+        android:title="@string/action_delete_task" />
+
     <item
         android:id="@+id/action_details_task"
-        android:title="Detalhes" />
+        android:icon="@drawable/outline_all_inclusive_24"
+        android:title="@string/action_details_task" />
 </menu>
