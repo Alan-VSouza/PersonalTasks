@@ -16,6 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -38,6 +39,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textViewEmptyTasks: TextView
 
     private var selectedTaskForContextMenu: Task? = null
+    private var tasksLiveData: LiveData<List<Task>>? = null
+
+    private var currentSortMoreImportantFirst: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,14 +50,13 @@ class MainActivity : AppCompatActivity() {
         toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.title = "Simplify"
-
-
         val rootLayout = findViewById<View>(R.id.main_container)
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            v.setPadding(v.paddingLeft, systemBars.top, v.paddingRight, v.paddingBottom)
             insets
         }
+
 
         newTaskLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
@@ -79,10 +82,42 @@ class MainActivity : AppCompatActivity() {
         loadAndObserveTasks()
     }
 
+    private fun loadAndObserveTasks() {
+        tasksLiveData?.removeObservers(this)
+
+        tasksLiveData = taskDao.getAllTasksOrdered(currentSortMoreImportantFirst)
+
+        tasksLiveData?.observe(this, Observer { tasks ->
+            if (tasks.isNullOrEmpty()) {
+                recyclerViewTasks.visibility = View.GONE
+                textViewEmptyTasks.visibility = View.VISIBLE
+            } else {
+                recyclerViewTasks.visibility = View.VISIBLE
+                textViewEmptyTasks.visibility = View.GONE
+                taskAdapter.submitList(tasks)
+            }
+        })
+    }
+
+    private fun setSortOrder(moreImportantFirst: Boolean) {
+        if (currentSortMoreImportantFirst != moreImportantFirst) {
+            currentSortMoreImportantFirst = moreImportantFirst
+            loadAndObserveTasks()
+            invalidateOptionsMenu()
+        }
+    }
+
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         val inflater: MenuInflater = menuInflater
         inflater.inflate(R.menu.menu_main, menu)
         return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+        menu?.findItem(R.id.action_sort_more_important_first)?.isChecked = currentSortMoreImportantFirst
+        menu?.findItem(R.id.action_sort_less_important_first)?.isChecked = !currentSortMoreImportantFirst
+        return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -91,6 +126,20 @@ class MainActivity : AppCompatActivity() {
                 val intent = Intent(this, TaskDetailActivity::class.java)
                 intent.putExtra("MODE", "NEW")
                 newTaskLauncher.launch(intent)
+                true
+            }
+            R.id.action_sort_more_important_first -> {
+                if (!item.isChecked) {
+                    item.isChecked = true
+                    setSortOrder(true)
+                }
+                true
+            }
+            R.id.action_sort_less_important_first -> {
+                if (!item.isChecked) {
+                    item.isChecked = true
+                    setSortOrder(false)
+                }
                 true
             }
             else -> super.onOptionsItemSelected(item)
@@ -129,19 +178,6 @@ class MainActivity : AppCompatActivity() {
 
     fun setSelectedTaskForContextMenu(task: Task) {
         selectedTaskForContextMenu = task
-    }
-
-    private fun loadAndObserveTasks() {
-        taskDao.getAllTasks().observe(this, Observer { tasks ->
-            if (tasks.isNullOrEmpty()) {
-                recyclerViewTasks.visibility = View.GONE
-                textViewEmptyTasks.visibility = View.VISIBLE
-            } else {
-                recyclerViewTasks.visibility = View.VISIBLE
-                textViewEmptyTasks.visibility = View.GONE
-                taskAdapter.submitList(tasks)
-            }
-        })
     }
 
     private fun showDeleteConfirmationDialog(task: Task) {

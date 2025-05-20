@@ -29,5 +29,9 @@
     <string name="action_edit_task">Editar tarefa</string>
     <string name="action_delete_task">Excluir tarefa</string>
     <string name="action_details_task">Detalhes</string>
+    <string name="action_new_task">Nova Tarefa</string>
+    <string name="sort_by_importance">Ordenar por Importância</string>
+    <string name="sort_more_important_first">Mais Importante Primeiro</string>
+    <string name="sort_less_important_first">Menos Importante Primeiro</string>
 
 </resources>

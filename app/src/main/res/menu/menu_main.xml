@@ -1,9 +1,28 @@
-<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
+
     <item
         android:id="@+id/action_new_task"
-        android:title="Nova Tarefa"
-        android:icon="@android:drawable/ic_menu_add"
-        app:showAsAction="ifRoom|withText" />
-</menu>
+        android:icon="@drawable/ic_add_task_themed"
+        android:showAsAction="ifRoom"
+        android:title="@string/action_new_task" />
+
+
+    <item
+        android:id="@+id/action_sort_by_importance_group"
+        android:showAsAction="ifRoom"
+        android:title="@string/sort_by_importance"
+        android:icon="@drawable/ic_sort_themed">
+    <menu>
+        <group android:checkableBehavior="single">
+            <item
+                android:id="@+id/action_sort_more_important_first"
+                android:title="@string/sort_more_important_first" />
+            <item
+                android:id="@+id/action_sort_less_important_first"
+                android:title="@string/sort_less_important_first" />
+        </group>
+    </menu>
+</item>
+
+    </menu>
