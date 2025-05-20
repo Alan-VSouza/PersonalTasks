@@ -1,68 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/task_item_card"
+    style="?attr/materialCardViewStyle"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardBackgroundColor="@color/card_background_dark"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp"
-    android:layout_marginStart="8dp"
-    android:layout_marginEnd="8dp"
-    android:layout_marginTop="4dp"
-    android:layout_marginBottom="4dp">
+    android:layout_marginStart="16dp"
+    android:layout_marginEnd="16dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginBottom="8dp">
 
-    <LinearLayout
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+<View
+    android:id="@+id/viewImportanceIndicator"
+    android:layout_width="6dp"
+    android:layout_height="match_parent"/>
+
+<LinearLayout
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/textViewTaskTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        tools:text="Título da Tarefa"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:textColor="?attr/colorOnSurface"
+        android:maxLines="1"
+        android:ellipsize="end"/>
 
-        <View
-            android:id="@+id/viewImportanceIndicator"
-            android:layout_width="6dp"
-            android:layout_height="match_parent"
-            android:background="@color/grey_medium" />
+    <TextView
+        android:id="@+id/textViewTaskDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Descrição da tarefa..."
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:layout_marginTop="4dp"
+        android:maxLines="2"
+        android:ellipsize="end"/>
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:id="@+id/textViewTaskTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                tools:text="Título da Tarefa Bem Grande Para Testar o Ellipsize"
-                android:textColor="@color/text_primary_light"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:maxLines="1"
-                android:ellipsize="end"/>
-
-            <TextView
-                android:id="@+id/textViewTaskDescription"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                tools:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque mattis tempus laoreet. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Vivamus mattis neque mauris. Fusce sed accumsan augue, quis lobortis neque."
-                android:textColor="@color/text_secondary_light"
-                android:textSize="14sp"
-                android:layout_marginTop="4dp"
-                android:maxLines="2"
-                android:ellipsize="end"/>
-
-            <TextView
-                android:id="@+id/textViewTaskDueDate"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                tools:text="Data Limite: 25/12/2025"
-                android:textColor="@color/text_tertiary_light"
-                android:textSize="12sp"
-                android:layout_marginTop="8dp"/>
-
-        </LinearLayout>
+    <TextView
+        android:id="@+id/textViewTaskDueDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        tools:text="Data Limite: 25/12/2025"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:layout_marginTop="8dp"/>
     </LinearLayout>
+</LinearLayout>
 </com.google.android.material.card.MaterialCardView>

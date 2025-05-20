@@ -68,7 +68,7 @@ class TaskAdapter : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallba
             popupMenu.setOnMenuItemClickListener { menuItem ->
                 val activity = view.context as? MainActivity
                 activity?.setSelectedTaskForContextMenu(task)
-                activity?.onContextItemSelected(menuItem) ?: false
+                activity?.onContextItemSelected(menuItem) == true
             }
 
             try {
