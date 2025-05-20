@@ -132,7 +132,7 @@ class TaskDetailActivity : AppCompatActivity() {
     }
 
     private fun setupImportanceSpinner() {
-        val importanceLevelsDisplay = ImportanceLevel.values().map { level ->
+        val importanceLevelsDisplay = ImportanceLevel.entries.map { level ->
             when (level) {
                 ImportanceLevel.HIGH -> getString(R.string.importance_high)
                 ImportanceLevel.MEDIUM -> getString(R.string.importance_medium)
@@ -148,7 +148,7 @@ class TaskDetailActivity : AppCompatActivity() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         spinnerImportanceLevel.adapter = adapter
         if (mode == "NEW") {
-            spinnerImportanceLevel.setSelection(ImportanceLevel.values().indexOf(ImportanceLevel.MEDIUM))
+            spinnerImportanceLevel.setSelection(ImportanceLevel.entries.indexOf(ImportanceLevel.MEDIUM))
         }
     }
 
@@ -231,7 +231,7 @@ class TaskDetailActivity : AppCompatActivity() {
                     editTextTaskDueDate.setText("")
                 }
 
-                val importanceIndex = ImportanceLevel.values().indexOf(task.importance)
+                val importanceIndex = ImportanceLevel.entries.indexOf(task.importance)
                 if (importanceIndex >= 0) {
                     spinnerImportanceLevel.setSelection(importanceIndex)
                 }
