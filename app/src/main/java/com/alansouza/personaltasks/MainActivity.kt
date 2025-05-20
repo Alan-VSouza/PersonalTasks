@@ -1,7 +1,10 @@
 package com.alansouza.personaltasks
 
+import android.content.Intent
 import android.os.Bundle
+import android.view.MenuItem
 import android.view.View
+import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
@@ -13,6 +16,7 @@ import com.alansouza.personaltasks.adapter.TaskAdapter
 import com.alansouza.personaltasks.data.AppDatabase
 import com.alansouza.personaltasks.data.TaskDao
 import com.alansouza.personaltasks.model.Task
+import kotlin.jvm.java
 
 
 class MainActivity : AppCompatActivity() {
@@ -21,6 +25,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var taskAdapter: TaskAdapter
     private lateinit var taskDao: TaskDao
     private lateinit var toolbar: Toolbar
+    private lateinit var newTaskLauncher: ActivityResultLauncher<Intent>
 
     private var selectedTaskForContextMenu: Task? = null
 
@@ -49,6 +54,18 @@ class MainActivity : AppCompatActivity() {
         recyclerViewTasks.adapter = taskAdapter
 
         loadAndObserveTasks()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_new_task -> {
+                val intent = Intent(this, TaskDetailActivity::class.java)
+                intent.putExtra("MODE", "NEW")
+                newTaskLauncher.launch(intent)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 
     fun setSelectedTaskForContextMenu(task: Task) {
