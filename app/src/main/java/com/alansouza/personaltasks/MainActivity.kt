@@ -2,8 +2,11 @@ package com.alansouza.personaltasks
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
@@ -26,6 +29,7 @@ import com.alansouza.personaltasks.data.AppDatabase
 import com.alansouza.personaltasks.data.TaskDao
 import com.alansouza.personaltasks.model.Task
 import kotlinx.coroutines.launch
+import androidx.core.content.edit
 
 
 class MainActivity : AppCompatActivity() {
@@ -41,6 +45,10 @@ class MainActivity : AppCompatActivity() {
     private var selectedTaskForContextMenu: Task? = null
     private var tasksLiveData: LiveData<List<Task>>? = null
 
+    private val PREFS_NAME = "PersonalTasksPrefs"
+    private val KEY_SORT_ORDER = "sortMoreImportantFirst"
+
+    private lateinit var sharedPreferences: SharedPreferences
     private var currentSortMoreImportantFirst: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,6 +58,7 @@ class MainActivity : AppCompatActivity() {
         toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         supportActionBar?.title = "Simplify"
+
         val rootLayout = findViewById<View>(R.id.main_container)
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -57,6 +66,9 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+        loadSortPreference()
 
         newTaskLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == Activity.RESULT_OK) {
@@ -79,15 +91,28 @@ class MainActivity : AppCompatActivity() {
         taskAdapter = TaskAdapter()
         recyclerViewTasks.adapter = taskAdapter
 
+        Log.d("MainActivitySort", "onCreate: Initial sort order is $currentSortMoreImportantFirst")
         loadAndObserveTasks()
     }
 
+    private fun loadSortPreference() {
+        currentSortMoreImportantFirst = sharedPreferences.getBoolean(KEY_SORT_ORDER, true)
+        Log.d("MainActivitySort", "loadSortPreference: Loaded sort order as $currentSortMoreImportantFirst")
+    }
+
+    private fun saveSortPreference(isMoreImportantFirst: Boolean) {
+        sharedPreferences.edit {
+            putBoolean(KEY_SORT_ORDER, isMoreImportantFirst)
+        }
+        Log.d("MainActivitySort", "saveSortPreference: Saved sort order as $isMoreImportantFirst")
+    }
+
     private fun loadAndObserveTasks() {
+        Log.d("MainActivitySort", "loadAndObserveTasks: Using sort order $currentSortMoreImportantFirst")
         tasksLiveData?.removeObservers(this)
-
         tasksLiveData = taskDao.getAllTasksOrdered(currentSortMoreImportantFirst)
-
         tasksLiveData?.observe(this, Observer { tasks ->
+            Log.d("MainActivitySort", "Observer received ${tasks?.size ?: "null"} tasks.")
             if (tasks.isNullOrEmpty()) {
                 recyclerViewTasks.visibility = View.GONE
                 textViewEmptyTasks.visibility = View.VISIBLE
@@ -99,14 +124,15 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun setSortOrder(moreImportantFirst: Boolean) {
-        if (currentSortMoreImportantFirst != moreImportantFirst) {
-            currentSortMoreImportantFirst = moreImportantFirst
+    private fun setSortOrder(newSortOrderIsMoreImportantFirst: Boolean) {
+        Log.d("MainActivitySort", "setSortOrder called with: $newSortOrderIsMoreImportantFirst. Current: $currentSortMoreImportantFirst")
+        if (currentSortMoreImportantFirst != newSortOrderIsMoreImportantFirst) {
+            currentSortMoreImportantFirst = newSortOrderIsMoreImportantFirst
+            saveSortPreference(currentSortMoreImportantFirst)
             loadAndObserveTasks()
             invalidateOptionsMenu()
         }
     }
-
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         val inflater: MenuInflater = menuInflater
@@ -115,34 +141,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+        Log.d("MainActivitySort", "onPrepareOptionsMenu: Setting checks based on $currentSortMoreImportantFirst")
         menu?.findItem(R.id.action_sort_more_important_first)?.isChecked = currentSortMoreImportantFirst
         menu?.findItem(R.id.action_sort_less_important_first)?.isChecked = !currentSortMoreImportantFirst
         return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
+        when (item.itemId) {
             R.id.action_new_task -> {
                 val intent = Intent(this, TaskDetailActivity::class.java)
                 intent.putExtra("MODE", "NEW")
                 newTaskLauncher.launch(intent)
-                true
+                return true
             }
             R.id.action_sort_more_important_first -> {
-                if (!item.isChecked) {
-                    item.isChecked = true
-                    setSortOrder(true)
-                }
-                true
+                setSortOrder(true)
+                return true
             }
             R.id.action_sort_less_important_first -> {
-                if (!item.isChecked) {
-                    item.isChecked = true
-                    setSortOrder(false)
-                }
-                true
+                setSortOrder(false)
+                return true
             }
-            else -> super.onOptionsItemSelected(item)
+            else -> return super.onOptionsItemSelected(item)
         }
     }
 
@@ -207,5 +228,4 @@ class MainActivity : AppCompatActivity() {
         super.onContextMenuClosed(menu)
         selectedTaskForContextMenu = null
     }
-
 }
