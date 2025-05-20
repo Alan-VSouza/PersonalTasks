@@ -20,5 +20,10 @@
     <string name="button_save">Salvar</string>
     <string name="task_updated_successfully">Tarefa atualizada com sucesso!</string>
     <string name="task_created_successfully">Tarefa criada com sucesso!</string>
+    <string name="delete_task_title">Excluir Tarefa</string>
+    <string name="delete_task_confirmation_message">Tem certeza que deseja excluir a tarefa \"%1$s\"?</string>
+    <string name="delete">Excluir</string>
+    <string name="cancel">Cancelar</string>
+    <string name="task_deleted_message">Tarefa \"%1$s\" excluída.</string>
 
 </resources>

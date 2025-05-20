@@ -1,8 +1,10 @@
 package com.alansouza.personaltasks
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
@@ -13,12 +15,14 @@ import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.alansouza.personaltasks.adapter.TaskAdapter
 import com.alansouza.personaltasks.data.AppDatabase
 import com.alansouza.personaltasks.data.TaskDao
 import com.alansouza.personaltasks.model.Task
+import kotlinx.coroutines.launch
 import kotlin.jvm.java
 
 
@@ -118,6 +122,34 @@ class MainActivity : AppCompatActivity() {
                 taskAdapter.submitList(it)
             }
         })
+    }
+
+    private fun showDeleteConfirmationDialog(task: Task) {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.delete_task_title))
+            .setMessage(getString(R.string.delete_task_confirmation_message, task.title))
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
+                deleteTask(task)
+            }
+            .setNegativeButton(getString(R.string.cancel), null)
+            .show()
+    }
+
+    private fun deleteTask(task: Task) {
+        lifecycleScope.launch {
+            taskDao.deleteTaskOnDatabase(task)
+            Toast.makeText(
+                this@MainActivity,
+                getString(R.string.task_deleted_message, task.title),
+                Toast.LENGTH_SHORT
+            ).show()
+            selectedTaskForContextMenu = null
+        }
+    }
+
+    override fun onContextMenuClosed(menu: Menu) {
+        super.onContextMenuClosed(menu)
+        selectedTaskForContextMenu = null
     }
 
 }
