@@ -4,15 +4,15 @@
     <item
         android:id="@+id/action_new_task"
         android:icon="@drawable/ic_add_task_themed"
-        android:showAsAction="ifRoom"
-        android:title="@string/action_new_task" />
+        android:title="@string/action_new_task"
+        app:showAsAction="ifRoom" />
 
 
     <item
         android:id="@+id/action_sort_by_importance_group"
-        android:showAsAction="ifRoom"
         android:title="@string/sort_by_importance"
-        android:icon="@drawable/ic_sort_themed">
+        android:icon="@drawable/ic_sort_themed"
+        app:showAsAction="ifRoom">
     <menu>
         <group android:checkableBehavior="single">
             <item

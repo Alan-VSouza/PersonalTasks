@@ -59,7 +59,15 @@ class TaskAdapter : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallba
                 ImportanceLevel.MEDIUM -> ContextCompat.getColor(itemView.context, R.color.importance_medium_color)
                 ImportanceLevel.LIGHT -> ContextCompat.getColor(itemView.context, R.color.importance_light_color)
             }
+
             importanceIndicatorView.setBackgroundColor(importanceColor)
+
+            val importanceText = when (task.importance) {
+                 ImportanceLevel.HIGH -> itemView.context.getString(R.string.importance_high)
+                 ImportanceLevel.MEDIUM -> itemView.context.getString(R.string.importance_medium)
+                 ImportanceLevel.LIGHT -> itemView.context.getString(R.string.importance_light)
+            }
+            itemView.findViewById<TextView>(R.id.textViewImportanceText).text = importanceText
         }
 
         private fun showPopupMenu(view: View, task: Task) {

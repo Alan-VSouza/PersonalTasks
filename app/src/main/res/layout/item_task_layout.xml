@@ -57,6 +57,15 @@
         android:textAppearance="?attr/textAppearanceBodySmall"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:layout_marginTop="8dp"/>
-    </LinearLayout>
+
+    <TextView
+        android:id="@+id/textViewImportanceText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textAppearance="?attr/textAppearanceCaption"
+        android:textSize="11sp"
+        tools:text="Alta" />
+</LinearLayout>
 </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

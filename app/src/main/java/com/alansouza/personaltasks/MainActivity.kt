@@ -12,7 +12,6 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -21,15 +20,14 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.alansouza.personaltasks.adapter.TaskAdapter
 import com.alansouza.personaltasks.data.AppDatabase
 import com.alansouza.personaltasks.data.TaskDao
 import com.alansouza.personaltasks.model.Task
-import kotlinx.coroutines.launch
 import androidx.core.content.edit
+import com.google.android.material.snackbar.Snackbar
 
 
 class MainActivity : AppCompatActivity() {
@@ -38,18 +36,33 @@ class MainActivity : AppCompatActivity() {
     private lateinit var taskAdapter: TaskAdapter
     private lateinit var taskDao: TaskDao
     private lateinit var toolbar: Toolbar
-    private lateinit var newTaskLauncher: ActivityResultLauncher<Intent>
-    private lateinit var editTaskLauncher: ActivityResultLauncher<Intent>
     private lateinit var textViewEmptyTasks: TextView
 
     private var selectedTaskForContextMenu: Task? = null
     private var tasksLiveData: LiveData<List<Task>>? = null
 
-    private val PREFS_NAME = "PersonalTasksPrefs"
-    private val KEY_SORT_ORDER = "sortMoreImportantFirst"
+    companion object {
+        private const val PREFS_NAME = "PersonalTasksPrefs"
+        private const val KEY_SORT_ORDER = "sortMoreImportantFirst"
+        const val EXTRA_MODE = "MODE"
+        const val EXTRA_TASK_ID = "TASK_ID"
+    }
 
     private lateinit var sharedPreferences: SharedPreferences
     private var currentSortMoreImportantFirst: Boolean = true
+
+    private val taskDetailLauncher: ActivityResultLauncher<Intent> = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val message = result.data?.getStringExtra("MESSAGE_AFTER_OPERATION")
+            if (!message.isNullOrEmpty()) {
+                val rootView: View = findViewById(R.id.main_container)
+                Snackbar.make(rootView, message, Snackbar.LENGTH_SHORT).show()
+            }
+        }
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +70,7 @@ class MainActivity : AppCompatActivity() {
 
         toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
-        supportActionBar?.title = "Simplify"
+        supportActionBar?.title = getString(R.string.app_name)
 
         val rootLayout = findViewById<View>(R.id.main_container)
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { v, insets ->
@@ -67,20 +80,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
         loadSortPreference()
-
-        newTaskLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                Toast.makeText(this, getString(R.string.task_created_successfully), Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        editTaskLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                Toast.makeText(this, getString(R.string.task_updated_successfully), Toast.LENGTH_SHORT).show()
-            }
-        }
 
         textViewEmptyTasks = findViewById(R.id.textViewEmptyTasks)
         taskDao = AppDatabase.getDatabase(applicationContext).taskDao()
@@ -93,6 +93,14 @@ class MainActivity : AppCompatActivity() {
 
         Log.d("MainActivitySort", "onCreate: Initial sort order is $currentSortMoreImportantFirst")
         loadAndObserveTasks()
+    }
+
+    private fun openTaskDetailScreen(mode: String, task: Task? = null) {
+        val intent = Intent(this, TaskDetailActivity::class.java).apply {
+            putExtra(EXTRA_MODE, mode)
+            task?.let { putExtra(EXTRA_TASK_ID, it.id) }
+        }
+        taskDetailLauncher.launch(intent)
     }
 
     private fun loadSortPreference() {
@@ -110,16 +118,17 @@ class MainActivity : AppCompatActivity() {
     private fun loadAndObserveTasks() {
         Log.d("MainActivitySort", "loadAndObserveTasks: Using sort order $currentSortMoreImportantFirst")
         tasksLiveData?.removeObservers(this)
+
         tasksLiveData = taskDao.getAllTasksOrdered(currentSortMoreImportantFirst)
         tasksLiveData?.observe(this, Observer { tasks ->
             Log.d("MainActivitySort", "Observer received ${tasks?.size ?: "null"} tasks.")
-            if (tasks.isNullOrEmpty()) {
-                recyclerViewTasks.visibility = View.GONE
-                textViewEmptyTasks.visibility = View.VISIBLE
-            } else {
-                recyclerViewTasks.visibility = View.VISIBLE
-                textViewEmptyTasks.visibility = View.GONE
+            val isEmpty = tasks.isNullOrEmpty()
+            recyclerViewTasks.visibility = if (isEmpty) View.GONE else View.VISIBLE
+            textViewEmptyTasks.visibility = if (isEmpty) View.VISIBLE else View.GONE
+            if (!isEmpty) {
                 taskAdapter.submitList(tasks)
+            } else {
+                taskAdapter.submitList(emptyList())
             }
         })
     }
@@ -142,28 +151,33 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
         Log.d("MainActivitySort", "onPrepareOptionsMenu: Setting checks based on $currentSortMoreImportantFirst")
-        menu?.findItem(R.id.action_sort_more_important_first)?.isChecked = currentSortMoreImportantFirst
-        menu?.findItem(R.id.action_sort_less_important_first)?.isChecked = !currentSortMoreImportantFirst
+        val moreImportantFirstItem = menu?.findItem(R.id.action_sort_more_important_first)
+        val lessImportantFirstItem = menu?.findItem(R.id.action_sort_less_important_first)
+
+        moreImportantFirstItem?.isChecked = currentSortMoreImportantFirst
+        lessImportantFirstItem?.isChecked = !currentSortMoreImportantFirst
         return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
+        return when (item.itemId) {
             R.id.action_new_task -> {
-                val intent = Intent(this, TaskDetailActivity::class.java)
-                intent.putExtra("MODE", "NEW")
-                newTaskLauncher.launch(intent)
-                return true
+                openTaskDetailScreen(TaskDetailActivity.MODE_NEW)
+                true
             }
             R.id.action_sort_more_important_first -> {
-                setSortOrder(true)
-                return true
+                if (!item.isChecked) {
+                    setSortOrder(true)
+                }
+                true
             }
             R.id.action_sort_less_important_first -> {
-                setSortOrder(false)
-                return true
+                if (!item.isChecked) {
+                    setSortOrder(false)
+                }
+                true
             }
-            else -> return super.onOptionsItemSelected(item)
+            else -> super.onOptionsItemSelected(item)
         }
     }
 
@@ -173,10 +187,7 @@ class MainActivity : AppCompatActivity() {
 
         return when (item.itemId) {
             R.id.action_edit_task -> {
-                val intent = Intent(this, TaskDetailActivity::class.java)
-                intent.putExtra("MODE", "EDIT")
-                intent.putExtra("TASK_ID", currentTask.id)
-                editTaskLauncher.launch(intent)
+                openTaskDetailScreen(TaskDetailActivity.MODE_EDIT, currentTask)
                 true
             }
             R.id.action_delete_task -> {
@@ -184,14 +195,10 @@ class MainActivity : AppCompatActivity() {
                 true
             }
             R.id.action_details_task -> {
-                val intent = Intent(this, TaskDetailActivity::class.java)
-                intent.putExtra("MODE", "DETAILS")
-                intent.putExtra("TASK_ID", currentTask.id)
-                startActivity(intent)
+                openTaskDetailScreen(TaskDetailActivity.MODE_VIEW_DETAILS, currentTask)
                 true
             }
             else -> {
-                selectedTaskForContextMenu = null
                 super.onContextItemSelected(item)
             }
         }
@@ -206,22 +213,14 @@ class MainActivity : AppCompatActivity() {
             .setTitle(getString(R.string.delete_task_title))
             .setMessage(getString(R.string.delete_task_confirmation_message, task.title))
             .setPositiveButton(getString(R.string.delete)) { _, _ ->
-                deleteTask(task)
+                openTaskDetailScreen(TaskDetailActivity.MODE_DELETE_CONFIRM, task)
             }
-            .setNegativeButton(getString(R.string.cancel), null)
+            .setNegativeButton(getString(R.string.cancel)) { _, _ ->
+                selectedTaskForContextMenu = null
+            }
+            .setOnDismissListener {
+            }
             .show()
-    }
-
-    private fun deleteTask(task: Task) {
-        lifecycleScope.launch {
-            taskDao.deleteTaskOnDatabase(task)
-            Toast.makeText(
-                this@MainActivity,
-                getString(R.string.task_deleted_message, task.title),
-                Toast.LENGTH_SHORT
-            ).show()
-            selectedTaskForContextMenu = null
-        }
     }
 
     override fun onContextMenuClosed(menu: Menu) {
