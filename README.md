@@ -44,9 +44,11 @@ O PersonalTasks permite aos usuários criar, visualizar, editar, ordenar e exclu
 ---
 
 ### Ordenar Tarefas
+###### (Nota: A ordenação é automática por importância)
 ![Ordenar Tarefas](./readme_assets/ordenar_importancia.png)
+
 ---
-(Nota: A ordenação é automática por importância)
+
 
 ### Pop-Up para ações
 ![Seleção de Data](./readme_assets/pop_acoes.png)
