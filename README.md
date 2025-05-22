@@ -2,7 +2,7 @@
 
 Aplicativo Android para gerenciamento de tarefas pessoais.
 
-**Autor:** Alan Souza
+**Autor:** Alan Souza <br>
 **Email:** alansouzeesi@gmail.com
 
 ## Descrição
@@ -44,10 +44,9 @@ O PersonalTasks permite aos usuários criar, visualizar, editar, ordenar e exclu
 ---
 
 ### Ordenar Tarefas
-(Nota: A ordenação é automática por importância e data)
 ![Ordenar Tarefas](./readme_assets/ordenar_importancia.png)
-
 ---
+(Nota: A ordenação é automática por importância)
 
 ### Pop-Up para ações
 ![Seleção de Data](./readme_assets/pop_acoes.png)
