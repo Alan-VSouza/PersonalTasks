@@ -4,18 +4,16 @@
 
     <application
         android:allowBackup="true"
-    android:theme="@style/Theme.PersonalTasks.Dark"
-    tools:targetApi="31">
-    <activity
-        android:name=".MainActivity"
-        android:exported="true">
-    </activity>
-    <activity
-        android:name=".TaskDetailActivity"
-        android:exported="false"
-        android:theme="@style/Theme.PersonalTasks.TaskDetail">
-    </activity>
-</application>
-
-
-    </manifest>
+        android:theme="@style/Theme.PersonalTasks.Dark"
+        tools:targetApi="31">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+        </activity>
+        <activity
+            android:name=".TaskDetailActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PersonalTasks.TaskDetail">
+        </activity>
+    </application>
+</manifest>
