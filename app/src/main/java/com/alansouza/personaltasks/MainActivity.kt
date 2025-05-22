@@ -63,14 +63,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
-        supportActionBar?.title = getString(R.string.app_name)
+
+        supportActionBar?.setDisplayShowTitleEnabled(false)
 
         val rootLayout = findViewById<View>(R.id.main_container)
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { v, insets ->
@@ -94,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         Log.d("MainActivitySort", "onCreate: Initial sort order is $currentSortMoreImportantFirst")
         loadAndObserveTasks()
     }
+
 
     private fun openTaskDetailScreen(mode: String, task: Task? = null) {
         val intent = Intent(this, TaskDetailActivity::class.java).apply {
@@ -160,21 +161,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        Log.d("MainActivitySort", "onOptionsItemSelected: Clicked item ${item.title}")
         return when (item.itemId) {
             R.id.action_new_task -> {
                 openTaskDetailScreen(TaskDetailActivity.MODE_NEW)
                 true
             }
             R.id.action_sort_more_important_first -> {
-                if (!item.isChecked) {
-                    setSortOrder(true)
-                }
+                setSortOrder(true)
                 true
             }
             R.id.action_sort_less_important_first -> {
-                if (!item.isChecked) {
-                    setSortOrder(false)
-                }
+                setSortOrder(false)
                 true
             }
             else -> super.onOptionsItemSelected(item)

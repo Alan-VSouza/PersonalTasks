@@ -32,6 +32,7 @@ class TaskAdapter : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallba
         private val descriptionTextView: TextView = itemView.findViewById(R.id.textViewTaskDescription)
         private val dueDateTextView: TextView = itemView.findViewById(R.id.textViewTaskDueDate)
         private val importanceIndicatorView: View = itemView.findViewById(R.id.viewImportanceIndicator)
+        private val importanceTextView: TextView = itemView.findViewById(R.id.textViewImportanceText)
 
         init {
             itemView.setOnLongClickListener {
@@ -47,6 +48,7 @@ class TaskAdapter : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallba
         fun bind(task: Task) {
             titleTextView.text = task.title
             descriptionTextView.text = task.description
+
             if (task.description.isEmpty()) {
                 descriptionTextView.visibility = View.GONE
             } else {
@@ -59,15 +61,14 @@ class TaskAdapter : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallba
                 ImportanceLevel.MEDIUM -> ContextCompat.getColor(itemView.context, R.color.importance_medium_color)
                 ImportanceLevel.LIGHT -> ContextCompat.getColor(itemView.context, R.color.importance_light_color)
             }
-
             importanceIndicatorView.setBackgroundColor(importanceColor)
 
-            val importanceText = when (task.importance) {
-                 ImportanceLevel.HIGH -> itemView.context.getString(R.string.importance_high)
-                 ImportanceLevel.MEDIUM -> itemView.context.getString(R.string.importance_medium)
-                 ImportanceLevel.LIGHT -> itemView.context.getString(R.string.importance_light)
+            val importanceTextString = when (task.importance) {
+                ImportanceLevel.HIGH -> itemView.context.getString(R.string.importance_high)
+                ImportanceLevel.MEDIUM -> itemView.context.getString(R.string.importance_medium)
+                ImportanceLevel.LIGHT -> itemView.context.getString(R.string.importance_light)
             }
-            itemView.findViewById<TextView>(R.id.textViewImportanceText).text = importanceText
+            importanceTextView.text = importanceTextString
         }
 
         private fun showPopupMenu(view: View, task: Task) {
@@ -75,23 +76,22 @@ class TaskAdapter : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallba
             popupMenu.inflate(R.menu.context_menu_task)
             popupMenu.setOnMenuItemClickListener { menuItem ->
                 val activity = view.context as? MainActivity
-                activity?.setSelectedTaskForContextMenu(task)
-                activity?.onContextItemSelected(menuItem) == true
+                if (activity != null) {
+                    activity.setSelectedTaskForContextMenu(task)
+                    activity.onContextItemSelected(menuItem)
+                }
+                true
             }
 
-            try {
-                val fieldMPopup = PopupMenu::class.java.getDeclaredField("mPopup")
-                fieldMPopup.isAccessible = true
-                val mPopup = fieldMPopup.get(popupMenu)
-                mPopup.javaClass
-                    .getDeclaredMethod("setForceShowIcon", Boolean::class.java)
-                    .invoke(mPopup, true)
-            } catch (e: Exception) {
-            }
+            val fieldMPopup = PopupMenu::class.java.getDeclaredField("mPopup")
+            fieldMPopup.isAccessible = true
+            val mPopup = fieldMPopup.get(popupMenu)
+            mPopup.javaClass
+                .getDeclaredMethod("setForceShowIcon", Boolean::class.java)
+                .invoke(mPopup, true)
             popupMenu.show()
         }
     }
-
     class TaskDiffCallback : DiffUtil.ItemCallback<Task>() {
         override fun areItemsTheSame(oldItem: Task, newItem: Task): Boolean {
             return oldItem.id == newItem.id
