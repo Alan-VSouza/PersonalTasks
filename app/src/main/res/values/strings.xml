@@ -25,7 +25,7 @@
     <string name="delete">Excluir</string>
     <string name="cancel">Cancelar</string>
     <string name="task_deleted_message">Tarefa \"%1$s\" excluída.</string>
-    <string name="no_tasks_message">Nenhuma tarefa cadastrada.\nClique no \'+\' para adicionar!</string>
+    <string name="no_tasks_message">Clique no ícone para adicionar!</string>
     <string name="action_edit_task">Editar tarefa</string>
     <string name="action_delete_task">Excluir tarefa</string>
     <string name="action_details_task">Detalhes</string>
