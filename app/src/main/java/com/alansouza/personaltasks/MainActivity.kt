@@ -219,6 +219,10 @@ class MainActivity : AppCompatActivity() {
      */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
+            R.id.action_new_task -> {
+                openTaskDetailScreen(TaskDetailActivity.MODE_NEW)
+                true
+            }
             R.id.action_sort_more_important_first -> {
                 item.isChecked = true
                 setSortOrder(true)
