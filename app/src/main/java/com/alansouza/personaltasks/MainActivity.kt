@@ -79,6 +79,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // Inicializa SharedPreferences e carrega a preferência de ordenação
+        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        loadSortPreference()
+
         toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
         // Desabilita o título padrão da ActionBar, pois usamos um TextView customizado no layout da Toolbar
@@ -91,10 +95,6 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(v.paddingLeft, systemBars.top, v.paddingRight, v.paddingBottom)
             insets
         }
-
-        // Inicializa SharedPreferences e carrega a preferência de ordenação
-        sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        loadSortPreference()
 
         // Inicializa as Views
         textViewEmptyTasks = findViewById(R.id.textViewEmptyTasks)
@@ -137,9 +137,7 @@ class MainActivity : AppCompatActivity() {
      * @param isMoreImportantFirst True se a ordenação for por "mais importante primeiro".
      */
     private fun saveSortPreference(isMoreImportantFirst: Boolean) {
-        sharedPreferences.edit { // Usa a extensão KTX para SharedPreferences
-            putBoolean(KEY_SORT_ORDER, isMoreImportantFirst)
-        }
+        sharedPreferences.edit { putBoolean(KEY_SORT_ORDER, isMoreImportantFirst) }
         Log.d("MainActivitySort", "saveSortPreference: Preferência de ordenação salva: $isMoreImportantFirst")
     }
 
@@ -181,20 +179,22 @@ class MainActivity : AppCompatActivity() {
      * @param newSortOrderIsMoreImportantFirst True para "mais importante primeiro", false caso contrário.
      */
     private fun setSortOrder(newSortOrderIsMoreImportantFirst: Boolean) {
-        Log.d("MainActivitySort", "setSortOrder chamada com: $newSortOrderIsMoreImportantFirst. Atual: $currentSortMoreImportantFirst")
-        // Só atualiza se a ordem realmente mudou
+        Log.d("MainActivitySort", "setSortOrder: Tentando mudar para $newSortOrderIsMoreImportantFirst. Atual é $currentSortMoreImportantFirst")
         if (currentSortMoreImportantFirst != newSortOrderIsMoreImportantFirst) {
             currentSortMoreImportantFirst = newSortOrderIsMoreImportantFirst
             saveSortPreference(currentSortMoreImportantFirst)
-            loadAndObserveTasks() // Recarrega as tarefas com a nova ordenação
-            invalidateOptionsMenu() // Pede ao sistema para recriar o menu (para atualizar os checkmarks)
+            loadAndObserveTasks()
+            invalidateOptionsMenu()
+        } else {
+            Log.d("MainActivitySort", "setSortOrder: A ordem NÃO mudou. Nenhuma ação tomada.")
         }
     }
 
+
     // Métodos do Menu de Opções (Options Menu)
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        val inflater: MenuInflater = menuInflater
-        inflater.inflate(R.menu.menu_main, menu) // Infla o layout do menu
+        menuInflater.inflate(R.menu.menu_main, menu)
+        Log.d("MainActivitySort", "onCreateOptionsMenu: Menu inflado.")
         return true
     }
 
@@ -203,12 +203,14 @@ class MainActivity : AppCompatActivity() {
      * Usado aqui para definir o estado (checado/não checado) dos itens de ordenação.
      */
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        Log.d("MainActivitySort", "onPrepareOptionsMenu: Configurando checks baseado em $currentSortMoreImportantFirst")
+        Log.d("MainActivitySort", "onPrepareOptionsMenu: Configurando checks baseado em currentSortMoreImportantFirst = $currentSortMoreImportantFirst")
         val moreImportantFirstItem = menu?.findItem(R.id.action_sort_more_important_first)
         val lessImportantFirstItem = menu?.findItem(R.id.action_sort_less_important_first)
 
         moreImportantFirstItem?.isChecked = currentSortMoreImportantFirst
         lessImportantFirstItem?.isChecked = !currentSortMoreImportantFirst
+
+        Log.d("MainActivitySort", "onPrepareOptionsMenu: moreImportant.isChecked=${moreImportantFirstItem?.isChecked}, lessImportant.isChecked=${lessImportantFirstItem?.isChecked}")
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -216,25 +218,22 @@ class MainActivity : AppCompatActivity() {
      * Chamado quando um item do menu de opções é selecionado.
      */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        Log.d("MainActivitySort", "onOptionsItemSelected: Item clicado ${item.title}")
         return when (item.itemId) {
-            R.id.action_new_task -> {
-                openTaskDetailScreen(TaskDetailActivity.MODE_NEW) // Abre a tela para nova tarefa
-                true
-            }
             R.id.action_sort_more_important_first -> {
-                setSortOrder(true) // Define a ordenação para "mais importante primeiro"
+                item.isChecked = true
+                setSortOrder(true)
                 true
             }
             R.id.action_sort_less_important_first -> {
-                setSortOrder(false) // Define a ordenação para "menos importante primeiro"
+                item.isChecked = true
+                setSortOrder(false)
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
-    // Métodos do Menu de Contexto (Context Menu)
+    // Metodos do Menu de Contexto (Context Menu)
     /**
      * Chamado quando um item do menu de contexto (aberto pelo adapter) é selecionado.
      */
@@ -264,7 +263,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Método chamado pelo [TaskAdapter] para informar qual tarefa foi selecionada
+     * Metodo chamado pelo [TaskAdapter] para informar qual tarefa foi selecionada
      * quando o menu de contexto é acionado.
      * @param task A tarefa selecionada.
      */
