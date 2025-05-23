@@ -10,6 +10,7 @@ import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.Spinner
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
@@ -47,12 +48,17 @@ class TaskDetailActivity : AppCompatActivity() {
     private lateinit var editTextTaskTitle: TextInputEditText
     private lateinit var textFieldLayoutTitle: TextInputLayout // Usado para exibir erros de validação do título
     private lateinit var editTextTaskDescription: TextInputEditText
-    // private lateinit var textFieldLayoutDescription: TextInputLayout // Descomente se for usar para erros da descrição
     private lateinit var editTextTaskDueDate: TextInputEditText
     private lateinit var textFieldLayoutDueDate: TextInputLayout // Usado para exibir erros de validação da data
     private lateinit var spinnerImportanceLevel: Spinner
     private lateinit var buttonSave: Button       // Botão principal (Salvar, Confirmar Exclusão)
     private lateinit var buttonCancel: Button     // Botão secundário (Cancelar, Voltar)
+
+    // Para detecção de alterações não salvas
+    private var originalTitle: String = ""
+    private var originalDescription: String = ""
+    private var originalDueDate: String = ""
+    private var originalImportance: ImportanceLevel = ImportanceLevel.MEDIUM
 
     // Componentes de dados e estado da Activity
     private lateinit var taskDao: TaskDao                // Objeto de acesso aos dados das tarefas (Room DAO)
@@ -71,7 +77,6 @@ class TaskDetailActivity : AppCompatActivity() {
         editTextTaskTitle = findViewById(R.id.editTextTaskTitle)
         textFieldLayoutTitle = findViewById(R.id.textFieldLayoutTitle)
         editTextTaskDescription = findViewById(R.id.editTextTaskDescription)
-        // textFieldLayoutDescription = findViewById(R.id.textFieldLayoutDescription) // Inicialize se usar
         editTextTaskDueDate = findViewById(R.id.editTextTaskDueDate)
         textFieldLayoutDueDate = findViewById(R.id.textFieldLayoutDueDate)
         spinnerImportanceLevel = findViewById(R.id.spinnerImportanceLevel)
@@ -102,8 +107,7 @@ class TaskDetailActivity : AppCompatActivity() {
 
         // Define o listener de clique para o botão Cancelar/Voltar
         buttonCancel.setOnClickListener {
-            setResult(Activity.RESULT_CANCELED) // Informa à MainActivity que a operação foi cancelada
-            finish() // Fecha esta Activity
+            tryExitWithConfirmation()
         }
     }
 
@@ -118,6 +122,11 @@ class TaskDetailActivity : AppCompatActivity() {
                 buttonSave.text = getString(R.string.button_save)
                 buttonSave.visibility = View.VISIBLE // Botão Salvar visível
                 updateDateInView() // Define a data atual no campo de data para novas tarefas
+                // Guarda os valores originais para detecção de alterações
+                originalTitle = ""
+                originalDescription = ""
+                originalDueDate = editTextTaskDueDate.text?.toString() ?: ""
+                originalImportance = ImportanceLevel.MEDIUM
             }
             MODE_EDIT -> { // Configuração para editar uma tarefa existente
                 supportActionBar?.title = getString(R.string.title_edit_task)
@@ -165,42 +174,32 @@ class TaskDetailActivity : AppCompatActivity() {
 
     /**
      * Configura o DatePickerDialog para ser exibido quando o campo de data limite é clicado.
-     * Define também a data mínima para novas tarefas.
+     * Agora SEMPRE impede datas passadas, inclusive na edição.
      */
     private fun setupDatePicker() {
-        // Listener para quando o usuário seleciona uma data no DatePicker
         val dateSetListener = DatePickerDialog.OnDateSetListener { _, year, monthOfYear, dayOfMonth ->
-            calendar.set(Calendar.YEAR, year)           // Define o ano no objeto Calendar
-            calendar.set(Calendar.MONTH, monthOfYear)    // Define o mês
-            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth) // Define o dia
-            updateDateInView()                         // Atualiza o campo de texto com a data formatada
+            calendar.set(Calendar.YEAR, year)
+            calendar.set(Calendar.MONTH, monthOfYear)
+            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+            updateDateInView()
         }
 
-        // Listener para o clique no campo de texto da data limite
         editTextTaskDueDate.setOnClickListener {
-            textFieldLayoutDueDate.error = null // Limpa qualquer erro de validação anterior
+            textFieldLayoutDueDate.error = null
             val dialog = DatePickerDialog(
                 this,
-                // R.style.YourDatePickerDialogTheme, // Descomente e use seu tema customizado se tiver
-                dateSetListener,                    // O listener definido acima
-                calendar.get(Calendar.YEAR),        // Ano inicial do DatePicker
-                calendar.get(Calendar.MONTH),       // Mês inicial
-                calendar.get(Calendar.DAY_OF_MONTH) // Dia inicial
+                dateSetListener,
+                calendar.get(Calendar.YEAR),
+                calendar.get(Calendar.MONTH),
+                calendar.get(Calendar.DAY_OF_MONTH)
             )
-
-            // Se estiver criando uma NOVA tarefa, impede a seleção de datas passadas
-            if (currentMode == MODE_NEW) {
-                val todayCalendar = Calendar.getInstance()
-                // Zera horas, minutos, segundos e milissegundos para pegar o início do dia de hoje
-                todayCalendar.set(Calendar.HOUR_OF_DAY, 0)
-                todayCalendar.set(Calendar.MINUTE, 0)
-                todayCalendar.set(Calendar.SECOND, 0)
-                todayCalendar.set(Calendar.MILLISECOND, 0)
-                dialog.datePicker.minDate = todayCalendar.timeInMillis // Define a data mínima como hoje
-            }
-            // Em outros modos (ex: EDIÇÃO), permite datas passadas (se a tarefa já tinha ou para correção)
-
-            dialog.show() // Exibe o DatePickerDialog
+            val todayCalendar = Calendar.getInstance()
+            todayCalendar.set(Calendar.HOUR_OF_DAY, 0)
+            todayCalendar.set(Calendar.MINUTE, 0)
+            todayCalendar.set(Calendar.SECOND, 0)
+            todayCalendar.set(Calendar.MILLISECOND, 0)
+            dialog.datePicker.minDate = todayCalendar.timeInMillis
+            dialog.show()
         }
     }
 
@@ -254,7 +253,6 @@ class TaskDetailActivity : AppCompatActivity() {
             MODE_NEW, MODE_EDIT -> saveOrUpdateTask()
             MODE_DELETE_CONFIRM -> deleteTaskConfirmed()
             else -> {
-                // Caso algum modo inesperado chegue aqui
                 Toast.makeText(this, "Ação inválida para o modo atual.", Toast.LENGTH_SHORT).show()
             }
         }
@@ -262,99 +260,94 @@ class TaskDetailActivity : AppCompatActivity() {
 
     /**
      * Valida os campos do formulário (título, descrição, data limite).
-     * Se válidos, salva uma nova tarefa ou atualiza uma existente no banco de dados.
+     * Agora inclui limites de caracteres.
      */
     private fun saveOrUpdateTask() {
-        // Obtém os valores dos campos, removendo espaços em branco extras (trim)
         val title = editTextTaskTitle.text.toString().trim()
         val description = editTextTaskDescription.text.toString().trim()
         val dueDate = editTextTaskDueDate.text.toString().trim()
 
-        var isValid = true // Flag para controlar a validade do formulário
+        var isValid = true
 
         // Validação do Título
         if (title.isEmpty()) {
-            textFieldLayoutTitle.error = getString(R.string.error_title_empty) // Mostra erro no TextInputLayout
-            if(isValid) editTextTaskTitle.requestFocus() // Foca no primeiro campo inválido encontrado
+            textFieldLayoutTitle.error = getString(R.string.error_title_empty)
+            editTextTaskTitle.requestFocus()
+            isValid = false
+        } else if (title.length > 50) {
+            textFieldLayoutTitle.error = "Título deve ter no máximo 50 caracteres"
+            editTextTaskTitle.requestFocus()
             isValid = false
         } else {
-            textFieldLayoutTitle.error = null // Limpa o erro se o campo for válido
+            textFieldLayoutTitle.error = null
         }
 
         // Validação da Descrição
-        if (description.isEmpty()) {
-            // Se você tiver um textFieldLayoutDescription, use:
-            // textFieldLayoutDescription.error = getString(R.string.error_description_empty)
-            // Caso contrário, um Toast (ou outra forma de feedback):
+        if (isValid && description.isEmpty()) {
             Toast.makeText(this, getString(R.string.error_description_empty), Toast.LENGTH_SHORT).show()
-            if(isValid) editTextTaskDescription.requestFocus()
+            editTextTaskDescription.requestFocus()
             isValid = false
-        } else {
-            // textFieldLayoutDescription.error = null // Limpe o erro se usar TextInputLayout
+        } else if (isValid && description.length > 250) {
+            Toast.makeText(this, "Descrição deve ter no máximo 250 caracteres", Toast.LENGTH_SHORT).show()
+            editTextTaskDescription.requestFocus()
+            isValid = false
         }
 
         // Validação da Data Limite
-        if (dueDate.isEmpty()) {
+        if (isValid && dueDate.isEmpty()) {
             textFieldLayoutDueDate.error = getString(R.string.error_due_date_empty)
-            if(isValid) editTextTaskDueDate.requestFocus()
+            editTextTaskDueDate.requestFocus()
             isValid = false
         } else {
             textFieldLayoutDueDate.error = null
         }
 
-        if (!isValid) { // Se algum campo obrigatório estiver inválido, interrompe a função
-            return
-        }
+        if (!isValid) return
 
         // Obtém o nível de importância selecionado no Spinner
         val selectedImportanceDisplayString = spinnerImportanceLevel.selectedItem.toString()
-        val importance = when(selectedImportanceDisplayString) { // Converte a string de volta para o Enum
+        val importance = when(selectedImportanceDisplayString) {
             getString(R.string.importance_high) -> ImportanceLevel.HIGH
             getString(R.string.importance_medium) -> ImportanceLevel.MEDIUM
             getString(R.string.importance_light) -> ImportanceLevel.LIGHT
-            else -> ImportanceLevel.MEDIUM // Valor padrão em caso de string inesperada
+            else -> ImportanceLevel.MEDIUM
         }
 
-        // Executa a operação de banco de dados (inserir ou atualizar)
         if (currentMode == MODE_NEW) {
-            val newTask = Task( // Cria um novo objeto Task
+            val newTask = Task(
                 title = title,
                 description = description,
                 dueDate = dueDate,
                 importance = importance
             )
-            lifecycleScope.launch { // Executa a operação de banco em uma coroutine (thread separada)
-                taskDao.insertTaskOnDatabase(newTask) // Insere a nova tarefa
-                val operationMessage = getString(R.string.task_created_successfully) // Mensagem de sucesso
-
-                // Prepara o resultado para retornar à MainActivity
+            lifecycleScope.launch {
+                taskDao.insertTaskOnDatabase(newTask)
+                val operationMessage = getString(R.string.task_created_successfully)
                 val resultIntent = Intent()
                 resultIntent.putExtra(EXTRA_MESSAGE_AFTER_OPERATION, operationMessage)
-                setResult(Activity.RESULT_OK, resultIntent) // Define o resultado como OK
-                finish() // Fecha esta Activity
+                setResult(Activity.RESULT_OK, resultIntent)
+                finish()
             }
         } else if (currentMode == MODE_EDIT) {
-            val taskToUpdate = currentTask // Captura o valor de currentTask para uma val local (segurança com smart cast)
-            if (taskToUpdate != null) { // Verifica se a tarefa a ser atualizada existe
-                val updatedTask = taskToUpdate.copy( // Cria uma cópia da tarefa com os novos valores
+            val taskToUpdate = currentTask
+            if (taskToUpdate != null) {
+                val updatedTask = taskToUpdate.copy(
                     title = title,
                     description = description,
                     dueDate = dueDate,
                     importance = importance
                 )
                 lifecycleScope.launch {
-                    taskDao.updateTaskOnDatabase(updatedTask) // Atualiza a tarefa no banco
+                    taskDao.updateTaskOnDatabase(updatedTask)
                     val operationMessage = getString(R.string.task_updated_successfully)
-
                     val resultIntent = Intent()
                     resultIntent.putExtra(EXTRA_MESSAGE_AFTER_OPERATION, operationMessage)
                     setResult(Activity.RESULT_OK, resultIntent)
                     finish()
                 }
             } else {
-                // Caso currentTask seja nulo no modo de edição (erro de lógica)
                 Toast.makeText(this, "Erro ao salvar: tarefa original não encontrada.", Toast.LENGTH_LONG).show()
-                setResult(Activity.RESULT_CANCELED) // Informa que a operação falhou/foi cancelada
+                setResult(Activity.RESULT_CANCELED)
                 finish()
             }
         }
@@ -365,20 +358,17 @@ class TaskDetailActivity : AppCompatActivity() {
      * Chamado quando o usuário clica no botão "Excluir" no modo [MODE_DELETE_CONFIRM].
      */
     private fun deleteTaskConfirmed() {
-        val taskToDelete = currentTask // Captura local para segurança
-        if (taskToDelete != null) { // Verifica se a tarefa a ser deletada existe
-            lifecycleScope.launch { // Operação de banco em coroutine
-                taskDao.deleteTaskOnDatabase(taskToDelete) // Deleta a tarefa
-                // Prepara a mensagem de sucesso, incluindo o título da tarefa deletada
+        val taskToDelete = currentTask
+        if (taskToDelete != null) {
+            lifecycleScope.launch {
+                taskDao.deleteTaskOnDatabase(taskToDelete)
                 val operationMessage = getString(R.string.task_deleted_message, taskToDelete.title)
-
                 val resultIntent = Intent()
                 resultIntent.putExtra(EXTRA_MESSAGE_AFTER_OPERATION, operationMessage)
                 setResult(Activity.RESULT_OK, resultIntent)
                 finish()
             }
         } else {
-            // Caso currentTask seja nulo ao tentar deletar
             Toast.makeText(this, "Erro ao excluir: tarefa não encontrada.", Toast.LENGTH_LONG).show()
             setResult(Activity.RESULT_CANCELED)
             finish()
@@ -388,44 +378,44 @@ class TaskDetailActivity : AppCompatActivity() {
     /**
      * Carrega os detalhes de uma tarefa existente (pelo [taskId]) do banco de dados
      * e preenche os campos da UI com esses dados.
-     * @param taskId O ID da tarefa a ser carregada.
+     * Também salva os valores originais para detecção de alterações.
      */
     private fun loadTaskDetails(taskId: Int) {
-        lifecycleScope.launch { // Operação de banco em coroutine
-            val taskFromDb = taskDao.getTaskById(taskId) // Busca a tarefa no banco
-            currentTask = taskFromDb // Armazena a tarefa carregada na propriedade da classe
+        lifecycleScope.launch {
+            val taskFromDb = taskDao.getTaskById(taskId)
+            currentTask = taskFromDb
 
-            if (taskFromDb != null) { // Se a tarefa foi encontrada
-                // Preenche os campos da UI com os dados da tarefa
+            if (taskFromDb != null) {
                 editTextTaskTitle.setText(taskFromDb.title)
                 editTextTaskDescription.setText(taskFromDb.description)
 
-                // Formata e define a data de conclusão no campo de texto
                 if (taskFromDb.dueDate.isNotEmpty()) {
                     try {
                         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                        val parsedDate = sdf.parse(taskFromDb.dueDate) // Tenta converter a String da data
+                        val parsedDate = sdf.parse(taskFromDb.dueDate)
                         if (parsedDate != null) {
-                            calendar.time = parsedDate // Define o objeto Calendar para a data da tarefa
-                            updateDateInView() // Atualiza o campo de texto
+                            calendar.time = parsedDate
+                            updateDateInView()
                         } else {
-                            editTextTaskDueDate.setText("") // Limpa se a data for inválida
+                            editTextTaskDueDate.setText("")
                         }
                     } catch (e: Exception) {
-                        // Em caso de erro ao parsear a data (formato inesperado)
                         editTextTaskDueDate.setText("")
                     }
                 } else {
-                    editTextTaskDueDate.setText("") // Limpa se a data estiver vazia
+                    editTextTaskDueDate.setText("")
                 }
 
-                // Define a seleção correta no Spinner de importância
                 val importanceIndex = ImportanceLevel.entries.indexOf(taskFromDb.importance)
-                if (importanceIndex >= 0) { // Garante que o índice é válido
+                if (importanceIndex >= 0) {
                     spinnerImportanceLevel.setSelection(importanceIndex)
                 }
+                // Salva os valores originais
+                originalTitle = taskFromDb.title
+                originalDescription = taskFromDb.description
+                originalDueDate = taskFromDb.dueDate
+                originalImportance = taskFromDb.importance
             } else {
-                // Se a tarefa com o ID fornecido não for encontrada no banco
                 Toast.makeText(this@TaskDetailActivity, "Tarefa não encontrada.", Toast.LENGTH_SHORT).show()
                 setResult(Activity.RESULT_CANCELED)
                 finish()
@@ -439,7 +429,7 @@ class TaskDetailActivity : AppCompatActivity() {
      */
     private fun disableEditing() {
         editTextTaskTitle.isEnabled = false
-        textFieldLayoutTitle.isEnabled = false // Desabilita o layout do campo também
+        textFieldLayoutTitle.isEnabled = false
         editTextTaskDescription.isEnabled = false
         editTextTaskDueDate.isEnabled = false
         textFieldLayoutDueDate.isEnabled = false
@@ -447,16 +437,64 @@ class TaskDetailActivity : AppCompatActivity() {
     }
 
     /**
+     * Detecta se há alterações não salvas no formulário.
+     */
+    private fun hasUnsavedChanges(): Boolean {
+        val currentTitle = editTextTaskTitle.text.toString()
+        val currentDescription = editTextTaskDescription.text.toString()
+        val currentDueDate = editTextTaskDueDate.text.toString()
+        val currentImportance = when (spinnerImportanceLevel.selectedItem.toString()) {
+            getString(R.string.importance_high) -> ImportanceLevel.HIGH
+            getString(R.string.importance_medium) -> ImportanceLevel.MEDIUM
+            getString(R.string.importance_light) -> ImportanceLevel.LIGHT
+            else -> ImportanceLevel.MEDIUM
+        }
+        return currentTitle != originalTitle ||
+                currentDescription != originalDescription ||
+                currentDueDate != originalDueDate ||
+                currentImportance != originalImportance
+    }
+
+    /**
+     * Mostra diálogo de confirmação ao tentar sair com alterações não salvas.
+     */
+    private fun tryExitWithConfirmation() {
+        if (hasUnsavedChanges()) {
+            AlertDialog.Builder(this)
+                .setTitle("Descartar alterações?")
+                .setMessage("Você tem alterações não salvas. Deseja realmente sair?")
+                .setPositiveButton("Sim") { _, _ -> finish() }
+                .setNegativeButton("Não", null)
+                .show()
+        } else {
+            finish()
+        }
+    }
+
+    /**
      * Lida com seleções de itens da Toolbar (neste caso, apenas o botão "voltar" - up).
+     * Agora usa confirmação ao sair.
      */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            android.R.id.home -> { // ID padrão para o botão "voltar" (up) da ActionBar/Toolbar
-                setResult(Activity.RESULT_CANCELED) // Define o resultado como cancelado
-                finish() // Fecha a Activity
-                true // Indica que o evento foi tratado
+            android.R.id.home -> {
+                tryExitWithConfirmation()
+                true
             }
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    /**
+     * Sobrescreve o comportamento do botão físico de voltar para exibir um diálogo de confirmação
+     * caso haja alterações não salvas. Não chamamos super.onBackPressed() porque o fluxo de saída
+     * (finish) é controlado manualmente após a confirmação do usuário.
+     *
+     * @Suppress("MissingSuperCall") é usado para suprimir o aviso do Lint, pois nesse caso
+     * não queremos o comportamento padrão do sistema.
+     */
+    @Suppress("MissingSuperCall")
+    override fun onBackPressed() {
+        tryExitWithConfirmation()
     }
 }
