@@ -8,7 +8,6 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
-import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.widget.TextView
@@ -292,8 +291,7 @@ class MainActivity : AppCompatActivity() {
                 selectedTaskForContextMenu = null
             }
             .setOnDismissListener {
-                // Opcional: limpar a tarefa selecionada se o diálogo for dispensado sem clicar nos botões
-                // selectedTaskForContextMenu = null
+                selectedTaskForContextMenu = null
             }
             .show()
     }
