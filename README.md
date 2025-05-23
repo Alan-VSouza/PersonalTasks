@@ -37,11 +37,6 @@ https://github.com/user-attachments/assets/01ee6704-1374-4c88-849e-0f4388e467d3
 
 ---
 
-### Menu de Contexto
-![Menu de Contexto](./readme_assets/clique_tres_pontos.png)
-
----
-
 ### Adicionar Nova Tarefa
 ![Adicionar Nova Tarefa](./readme_assets/nova_task.png)
 
@@ -73,7 +68,6 @@ https://github.com/user-attachments/assets/01ee6704-1374-4c88-849e-0f4388e467d3
 ![Excluir Tarefa](./readme_assets/excluir_task.png)
 
 ---
-
 ## Instruções de Execução
 
 1.  Clone este repositório: `git clone https://github.com/Alan-VSouza/PersonalTasks.git`
@@ -89,32 +83,37 @@ O PersonalTasks foi projetado para ser intuitivo e fácil de usar. Aqui está um
 **1. Tela Principal (Lista de Tarefas):**
 *   Ao abrir o aplicativo, você verá a lista de todas as suas tarefas cadastradas.
 *   Se não houver tarefas, uma mensagem indicará que a lista está vazia (como visto na screenshot ["Tela Principal (Sem tarefas)"](#tela-principal-sem-tarefas)).
-*   As tarefas são automaticamente ordenadas por nível de importância (Alta, Média, Leve) e, dentro de cada nível, pela data limite mais próxima.
-*   Cada item da lista exibe o título, uma prévia da descrição, a data limite e o nível de importância. ([Veja screenshot da lista com tarefas](#tela-principal-com-tarefas))
+*   As tarefas são ordenadas de acordo com a preferência selecionada no menu de ordenação (por importância, e secundariamente por data limite).
+*   Cada item da lista exibe o título, uma prévia da descrição, a data limite e o nível de importância com um indicador visual. ([Veja screenshot da lista com tarefas](#tela-principal-com-tarefas))
 
 **2. Adicionar uma Nova Tarefa:**
-*   Na tela principal, toque no ícone de três pontos no menu de opções na barra superior.
-*   Você deverá clicar em nova tarefa e será redirecionado a uma nova tela. ([Veja screenshot de adicionar nova tarefa](#adicionar-nova-tarefa))
+*   Na tela principal, toque no ícone de + na barra superior.
+*   Isso redirecionará para a tela de cadastro. ([Veja screenshot de adicionar nova tarefa](#adicionar-nova-tarefa))
 *   Preencha os campos:
-    *   **Título:** Um nome curto para sua tarefa.
-    *   **Descrição:** Detalhes adicionais sobre a tarefa.
-    *   **Data Limite:** Toque no botão "Definir Data Limite" para abrir um calendário (DatePicker) e escolha a data.
-    *   **Importância:** Selecione o nível de importância (Alta, Média ou Leve) usando o seletor apropriado.
-*   Toque em "Salvar" para adicionar a tarefa à sua lista. A nova tarefa aparecerá na tela principal.
-*   Toque em "Cancelar" para descartar as informações e voltar à tela principal.
+    *   **Título:** Um nome curto para sua tarefa (obrigatório, máximo de 50 caracteres).
+    *   **Descrição:** Detalhes adicionais sobre a tarefa (obrigatório, máximo de 250 caracteres).
+    *   **Data Limite:** Toque no campo para abrir um calendário (DatePicker) e escolha a data (obrigatório, não permite datas passadas).
+    *   **Importância:** Selecione o nível de importância (Alta, Média ou Baixa) usando o seletor.
+*   Toque em "Salvar" para adicionar a tarefa à sua lista. A nova tarefa aparecerá na tela principal, e uma mensagem de confirmação será exibida.
+*   Toque em "Cancelar" para descartar as informações e voltar à tela principal. Se houver alterações não salvas, um diálogo de confirmação será exibido.
 
 **3. Interagindo com Tarefas Existentes (Menu de Contexto):**
-*   Na tela principal, pressione e segure (clique longo) sobre uma tarefa na lista para abrir o Menu de Contexto (como visto na screenshot ["Pop-Up ações"](#pop-up-para-ações)).
+*   Na tela principal, pressione e segure (clique longo) sobre uma tarefa na lista para abrir o Menu de Contexto (como visto na screenshot ["Pop-Up para ações"](#pop-up-para-ações)).
 *   Este menu oferece as seguintes opções, que levarão à segunda tela para a ação correspondente:
     *   **Detalhes:** Abre a tela de detalhes da tarefa, onde você pode ver todas as informações da tarefa em modo de visualização (campos não editáveis). ([Veja screenshot de detalhes](#detalhes-das-tasks)).
-    *   **Editar tarefa:** Abre a tela de edição da tarefa, com os campos preenchidos com os dados atuais da tarefa, prontos para serem modificados. Faça as alterações desejadas e toque em "Salvar". ([Veja screenshot de edição](#edição-de-task)).
-    *   **Excluir tarefa:** Abre a tela de confirmação de exclusão da tarefa. Os detalhes da tarefa são exibidos para sua revisão. Toque em "Confirmar Exclusão" para remover permanentemente a tarefa ou "Cancelar" para voltar. ([Veja screenshot de exclusão](#excluir-task)).
+    *   **Editar tarefa:** Abre a tela de edição da tarefa, com os campos preenchidos com os dados atuais da tarefa, prontos para serem modificados. Faça as alterações desejadas (respeitando os limites de caracteres e a validação de data) e toque em "Salvar". Uma mensagem de confirmação será exibida. Se tentar sair com alterações não salvas, um diálogo de confirmação será exibido. ([Veja screenshot de edição](#edição-de-task)).
+    *   **Excluir tarefa:** Abre a tela de confirmação de exclusão da tarefa. Os detalhes da tarefa são exibidos para sua revisão. Toque em "Excluir" para remover permanentemente a tarefa (uma mensagem de confirmação será exibida na tela principal) ou "Cancelar" para voltar. ([Veja screenshot de exclusão](#excluir-task)).
 
-**4. Tela de Cadastro/Edição/Detalhes/Exclusão (Segunda Tela):**
-*   Esta tela é multifuncional e se adapta dependendo da ação iniciada na tela principal:
-    *   **Nova Tarefa / Editar Tarefa:** Campos de formulário (Título, Descrição, Data Limite com DatePicker, Seletor de Importância) e botões "Salvar" e "Cancelar".
-    *   **Detalhes:** Os campos são exibidos, mas desabilitados para edição. O botão principal geralmente é "Voltar" ou similar.
-*   Use o botão "Salvar" para aplicar as mudanças e retornar à tela principal, ou "Cancelar" (ou "Voltar") para descartar/ignorar e retornar.
+**4. Ordenação das Tarefas:**
+*   Na tela principal, toque no ícone de ordenação (representado por linha na horizonatal) no menu de opções na barra superior.
+*   Escolha entre **"Mais Importante Primeiro"** ou **"Menos Importante Primeiro"**. A lista será atualizada instantaneamente.
+*   A preferência de ordenação selecionada é salva e será aplicada sempre que você abrir o aplicativo. ([Veja screenshot de ordenar tarefas](#ordenar-tarefas)).
+
+**5. Tela de Cadastro/Edição/Detalhes/Exclusão (Segunda Tela):**
+*   Esta tela é multifuncional e se adapta dependendo da ação iniciada na tela principal.
+*   Para **Nova Tarefa** ou **Editar Tarefa**, os campos de formulário estarão ativos para entrada de dados.
+*   Para **Detalhes** ou **Confirmar Exclusão**, os campos são exibidos, mas desabilitados para edição.
+*   Use o botão "Salvar" (ou "Excluir") para aplicar as mudanças e retornar à tela principal. O botão "Cancelar" (ou o botão "Voltar" do dispositivo/toolbar) permitirá retornar, se houver alterações não salvas, um diálogo de confirmação será exibido.
 
 
 ## Arquitetura
