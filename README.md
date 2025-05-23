@@ -28,49 +28,49 @@ https://github.com/user-attachments/assets/01ee6704-1374-4c88-849e-0f4388e467d3
 ## Screenshots
 
 ### Tela Principal (Sem tarefas)
-![Lista de Tarefas Vazia](./readme_assets/principal_sem_tasks.png)
+![Lista de Tarefas Vazia](./readme_assets/principal_sem_tasks2.png)
 
 ---
 
 ### Tela Principal (Com tarefas)
-![Lista de Tarefas](./readme_assets/com_tasks.png)
+![Lista de Tarefas](./readme_assets/com_tasks2.png)
 
 ---
 
 ### Menu de Contexto
-![Menu de Contexto](./readme_assets/clique_tres_pontos.png)
+![Menu de Contexto](./readme_assets/clique_tres_pontos2.png.png)
 
 ---
 
 ### Adicionar Nova Tarefa
-![Adicionar Nova Tarefa](./readme_assets/nova_task.png)
+![Adicionar Nova Tarefa](./readme_assets/nova_task2.png)
 
 ---
 
 ### Ordenar Tarefas
 ###### (Nota: A ordenação é automática por importância)
-![Ordenar Tarefas](./readme_assets/ordenar_importancia.png)
+![Ordenar Tarefas](./readme_assets/ordenar_importancia2.png)
 
 ---
 
 
 ### Pop-Up para ações
-![Seleção de Data](./readme_assets/pop_acoes.png)
+![Seleção de Data](./readme_assets/pop_acoes2.png)
 
 ---
 
 ### Detalhes das Tasks
-![Detalhes para tasks](./readme_assets/detalhes_tasks.png)
+![Detalhes para tasks](./readme_assets/detalhes_tasks2.png)
 
 ---
 
 ### Edição de Task
-![Edicao de Tarefa](./readme_assets/editar_task.png)
+![Edicao de Tarefa](./readme_assets/editar_task2.png)
 
 ---
 
 ### Excluir Task
-![Excluir Tarefa](./readme_assets/excluir_task.png)
+![Excluir Tarefa](./readme_assets/excluir_task2.png)
 
 ---
 
