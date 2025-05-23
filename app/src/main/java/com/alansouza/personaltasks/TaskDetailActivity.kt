@@ -150,13 +150,24 @@ class TaskDetailActivity : AppCompatActivity() {
 
         editTextTaskDueDate.setOnClickListener {
             textFieldLayoutDueDate.error = null
-            DatePickerDialog(
+            val dialog = DatePickerDialog(
                 this,
                 dateSetListener,
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
-            ).show()
+            )
+
+            if (currentMode == MODE_NEW) {
+                val todayCalendar = Calendar.getInstance()
+                todayCalendar.set(Calendar.HOUR_OF_DAY, 0)
+                todayCalendar.set(Calendar.MINUTE, 0)
+                todayCalendar.set(Calendar.SECOND, 0)
+                todayCalendar.set(Calendar.MILLISECOND, 0)
+                dialog.datePicker.minDate = todayCalendar.timeInMillis
+            }
+
+            dialog.show()
         }
     }
 
