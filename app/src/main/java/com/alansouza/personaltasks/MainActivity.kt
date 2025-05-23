@@ -30,36 +30,48 @@ import androidx.core.content.edit
 import com.google.android.material.snackbar.Snackbar
 
 
+/**
+ * Activity principal que exibe a lista de tarefas.
+ * Lida com a navegação para adicionar/editar tarefas, ordenação da lista
+ * e interações do menu de contexto.
+ */
 class MainActivity : AppCompatActivity() {
 
+    // Views da UI
     private lateinit var recyclerViewTasks: RecyclerView
     private lateinit var taskAdapter: TaskAdapter
     private lateinit var taskDao: TaskDao
     private lateinit var toolbar: Toolbar
-    private lateinit var textViewEmptyTasks: TextView
+    private lateinit var textViewEmptyTasks: TextView // TextView para mostrar quando a lista está vazia
 
-    private var selectedTaskForContextMenu: Task? = null
-    private var tasksLiveData: LiveData<List<Task>>? = null
+    // Variáveis de estado
+    private var selectedTaskForContextMenu: Task? = null // Armazena a tarefa selecionada para o menu de contexto
+    private var tasksLiveData: LiveData<List<Task>>? = null // LiveData para observar as tarefas do banco
 
+    // Constantes para SharedPreferences e Intent Extras
     companion object {
-        private const val PREFS_NAME = "PersonalTasksPrefs"
-        private const val KEY_SORT_ORDER = "sortMoreImportantFirst"
+        private const val PREFS_NAME = "PersonalTasksPrefs" // Nome do arquivo de SharedPreferences
+        private const val KEY_SORT_ORDER = "sortMoreImportantFirst" // Chave para salvar a preferência de ordenação
+        // Chaves para passar dados para TaskDetailActivity
         const val EXTRA_MODE = "MODE"
         const val EXTRA_TASK_ID = "TASK_ID"
     }
 
     private lateinit var sharedPreferences: SharedPreferences
-    private var currentSortMoreImportantFirst: Boolean = true
+    private var currentSortMoreImportantFirst: Boolean = true // Preferência de ordenação atual
 
+    // ActivityResultLauncher para receber resultados da TaskDetailActivity
     private val taskDetailLauncher: ActivityResultLauncher<Intent> = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            val message = result.data?.getStringExtra("MESSAGE_AFTER_OPERATION")
+            // Se a TaskDetailActivity retornou OK, exibe a mensagem de feedback
+            val message = result.data?.getStringExtra(TaskDetailActivity.EXTRA_MESSAGE_AFTER_OPERATION)
             if (!message.isNullOrEmpty()) {
                 val rootView: View = findViewById(R.id.main_container)
                 Snackbar.make(rootView, message, Snackbar.LENGTH_SHORT).show()
             }
+            // A lista de tarefas será atualizada automaticamente pelo LiveData
         }
     }
 
@@ -69,9 +81,10 @@ class MainActivity : AppCompatActivity() {
 
         toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
-
+        // Desabilita o título padrão da ActionBar, pois usamos um TextView customizado no layout da Toolbar
         supportActionBar?.setDisplayShowTitleEnabled(false)
 
+        // Ajusta o padding da tela para acomodar as barras do sistema (status bar, navigation bar)
         val rootLayout = findViewById<View>(R.id.main_container)
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -79,79 +92,118 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        // Inicializa SharedPreferences e carrega a preferência de ordenação
         sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         loadSortPreference()
 
+        // Inicializa as Views
         textViewEmptyTasks = findViewById(R.id.textViewEmptyTasks)
         taskDao = AppDatabase.getDatabase(applicationContext).taskDao()
 
         recyclerViewTasks = findViewById(R.id.recyclerViewTasks)
         recyclerViewTasks.layoutManager = LinearLayoutManager(this)
-
         taskAdapter = TaskAdapter()
         recyclerViewTasks.adapter = taskAdapter
 
-        Log.d("MainActivitySort", "onCreate: Initial sort order is $currentSortMoreImportantFirst")
+        Log.d("MainActivitySort", "onCreate: Ordem de classificação inicial é $currentSortMoreImportantFirst")
+        // Carrega e observa as tarefas do banco de dados
         loadAndObserveTasks()
     }
 
-
+    /**
+     * Abre a [TaskDetailActivity] em um modo específico (nova, editar, detalhes, etc.).
+     * @param mode O modo de operação (ex: [TaskDetailActivity.MODE_NEW]).
+     * @param task A tarefa a ser passada para a activity (opcional, usado para editar/detalhes).
+     */
     private fun openTaskDetailScreen(mode: String, task: Task? = null) {
         val intent = Intent(this, TaskDetailActivity::class.java).apply {
-            putExtra(EXTRA_MODE, mode)
-            task?.let { putExtra(EXTRA_TASK_ID, it.id) }
+            putExtra(EXTRA_MODE, mode) // Passa o modo
+            task?.let { putExtra(EXTRA_TASK_ID, it.id) } // Passa o ID da tarefa, se houver
         }
-        taskDetailLauncher.launch(intent)
+        taskDetailLauncher.launch(intent) // Inicia a activity e espera um resultado
     }
 
+    /**
+     * Carrega a preferência de ordenação salva em SharedPreferences.
+     * O padrão é ordenar por "mais importante primeiro".
+     */
     private fun loadSortPreference() {
         currentSortMoreImportantFirst = sharedPreferences.getBoolean(KEY_SORT_ORDER, true)
-        Log.d("MainActivitySort", "loadSortPreference: Loaded sort order as $currentSortMoreImportantFirst")
+        Log.d("MainActivitySort", "loadSortPreference: Preferência de ordenação carregada: $currentSortMoreImportantFirst")
     }
 
+    /**
+     * Salva a preferência de ordenação atual em SharedPreferences.
+     * @param isMoreImportantFirst True se a ordenação for por "mais importante primeiro".
+     */
     private fun saveSortPreference(isMoreImportantFirst: Boolean) {
-        sharedPreferences.edit {
+        sharedPreferences.edit { // Usa a extensão KTX para SharedPreferences
             putBoolean(KEY_SORT_ORDER, isMoreImportantFirst)
         }
-        Log.d("MainActivitySort", "saveSortPreference: Saved sort order as $isMoreImportantFirst")
+        Log.d("MainActivitySort", "saveSortPreference: Preferência de ordenação salva: $isMoreImportantFirst")
     }
 
+    /**
+     * Carrega as tarefas do banco de dados com a ordenação atual e configura um Observer
+     * para atualizar a UI quando os dados mudarem.
+     */
     private fun loadAndObserveTasks() {
-        Log.d("MainActivitySort", "loadAndObserveTasks: Using sort order $currentSortMoreImportantFirst")
+        Log.d("MainActivitySort", "loadAndObserveTasks: Usando ordenação $currentSortMoreImportantFirst")
+        // Remove observadores antigos para evitar duplicações se este metodo for chamado múltiplas vezes
         tasksLiveData?.removeObservers(this)
 
+        // Obtém o LiveData do DAO com a preferência de ordenação atual
         tasksLiveData = taskDao.getAllTasksOrdered(currentSortMoreImportantFirst)
+        // Observa o LiveData
         tasksLiveData?.observe(this, Observer { tasks ->
-            Log.d("MainActivitySort", "Observer received ${tasks?.size ?: "null"} tasks.")
+            Log.d("MainActivitySort", "Observer recebeu ${tasks?.size ?: "nenhuma"} tarefa(s).")
+            // Log dos primeiros itens para depuração da ordenação
+            if (tasks != null && tasks.isNotEmpty()) {
+                Log.d("MainActivitySort", "Observer: Preferência de ordenação no escopo do observer: $currentSortMoreImportantFirst")
+                Log.d("MainActivitySort", "Observer: Primeiras 3 tarefas recebidas (ou menos):")
+                tasks.take(3).forEachIndexed { index, task ->
+                    Log.d("MainActivitySort", "  Tarefa[$index]: ${task.title}, Importância: ${task.importance}, Data: ${task.dueDate}")
+                }
+            }
+
             val isEmpty = tasks.isNullOrEmpty()
+            // Mostra/esconde o RecyclerView e a mensagem de lista vazia
             recyclerViewTasks.visibility = if (isEmpty) View.GONE else View.VISIBLE
             textViewEmptyTasks.visibility = if (isEmpty) View.VISIBLE else View.GONE
-            if (!isEmpty) {
-                taskAdapter.submitList(tasks)
-            } else {
-                taskAdapter.submitList(emptyList())
-            }
+
+            // Atualiza o adapter com a nova lista de tarefas (ou uma lista vazia)
+            taskAdapter.submitList(tasks ?: emptyList())
         })
     }
 
+    /**
+     * Define a nova ordem de classificação, salva a preferência e recarrega as tarefas.
+     * @param newSortOrderIsMoreImportantFirst True para "mais importante primeiro", false caso contrário.
+     */
     private fun setSortOrder(newSortOrderIsMoreImportantFirst: Boolean) {
-        Log.d("MainActivitySort", "setSortOrder called with: $newSortOrderIsMoreImportantFirst. Current: $currentSortMoreImportantFirst")
+        Log.d("MainActivitySort", "setSortOrder chamada com: $newSortOrderIsMoreImportantFirst. Atual: $currentSortMoreImportantFirst")
+        // Só atualiza se a ordem realmente mudou
         if (currentSortMoreImportantFirst != newSortOrderIsMoreImportantFirst) {
             currentSortMoreImportantFirst = newSortOrderIsMoreImportantFirst
             saveSortPreference(currentSortMoreImportantFirst)
-            loadAndObserveTasks()
-            invalidateOptionsMenu()
+            loadAndObserveTasks() // Recarrega as tarefas com a nova ordenação
+            invalidateOptionsMenu() // Pede ao sistema para recriar o menu (para atualizar os checkmarks)
         }
     }
 
+    // Métodos do Menu de Opções (Options Menu)
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         val inflater: MenuInflater = menuInflater
-        inflater.inflate(R.menu.menu_main, menu)
+        inflater.inflate(R.menu.menu_main, menu) // Infla o layout do menu
         return true
     }
 
+    /**
+     * Chamado antes do menu de opções ser exibido.
+     * Usado aqui para definir o estado (checado/não checado) dos itens de ordenação.
+     */
     override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        Log.d("MainActivitySort", "onPrepareOptionsMenu: Setting checks based on $currentSortMoreImportantFirst")
+        Log.d("MainActivitySort", "onPrepareOptionsMenu: Configurando checks baseado em $currentSortMoreImportantFirst")
         val moreImportantFirstItem = menu?.findItem(R.id.action_sort_more_important_first)
         val lessImportantFirstItem = menu?.findItem(R.id.action_sort_less_important_first)
 
@@ -160,40 +212,49 @@ class MainActivity : AppCompatActivity() {
         return super.onPrepareOptionsMenu(menu)
     }
 
+    /**
+     * Chamado quando um item do menu de opções é selecionado.
+     */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        Log.d("MainActivitySort", "onOptionsItemSelected: Clicked item ${item.title}")
+        Log.d("MainActivitySort", "onOptionsItemSelected: Item clicado ${item.title}")
         return when (item.itemId) {
             R.id.action_new_task -> {
-                openTaskDetailScreen(TaskDetailActivity.MODE_NEW)
+                openTaskDetailScreen(TaskDetailActivity.MODE_NEW) // Abre a tela para nova tarefa
                 true
             }
             R.id.action_sort_more_important_first -> {
-                setSortOrder(true)
+                setSortOrder(true) // Define a ordenação para "mais importante primeiro"
                 true
             }
             R.id.action_sort_less_important_first -> {
-                setSortOrder(false)
+                setSortOrder(false) // Define a ordenação para "menos importante primeiro"
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
     }
 
+    // Métodos do Menu de Contexto (Context Menu)
+    /**
+     * Chamado quando um item do menu de contexto (aberto pelo adapter) é selecionado.
+     */
     override fun onContextItemSelected(item: MenuItem): Boolean {
+        // Obtém a tarefa que foi selecionada (definida pelo adapter via setSelectedTaskForContextMenu)
         val currentTask = selectedTaskForContextMenu
-            ?: return super.onContextItemSelected(item)
+            ?: return super.onContextItemSelected(item) // Se nenhuma tarefa foi selecionada, não faz nada
 
         return when (item.itemId) {
             R.id.action_edit_task -> {
-                openTaskDetailScreen(TaskDetailActivity.MODE_EDIT, currentTask)
+                openTaskDetailScreen(TaskDetailActivity.MODE_EDIT, currentTask) // Abre para editar
                 true
             }
             R.id.action_delete_task -> {
+                // Mostra um diálogo de confirmação antes de ir para a tela de confirmação de exclusão
                 showDeleteConfirmationDialog(currentTask)
                 true
             }
             R.id.action_details_task -> {
-                openTaskDetailScreen(TaskDetailActivity.MODE_VIEW_DETAILS, currentTask)
+                openTaskDetailScreen(TaskDetailActivity.MODE_VIEW_DETAILS, currentTask) // Abre para ver detalhes
                 true
             }
             else -> {
@@ -202,27 +263,44 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Método chamado pelo [TaskAdapter] para informar qual tarefa foi selecionada
+     * quando o menu de contexto é acionado.
+     * @param task A tarefa selecionada.
+     */
     fun setSelectedTaskForContextMenu(task: Task) {
         selectedTaskForContextMenu = task
     }
 
+    /**
+     * Exibe um diálogo de confirmação antes de prosseguir para a tela de confirmação de exclusão.
+     * @param task A tarefa que pode ser excluída.
+     */
     private fun showDeleteConfirmationDialog(task: Task) {
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.delete_task_title))
             .setMessage(getString(R.string.delete_task_confirmation_message, task.title))
             .setPositiveButton(getString(R.string.delete)) { _, _ ->
+                // Se confirmado, abre a TaskDetailActivity no modo de confirmação de exclusão
                 openTaskDetailScreen(TaskDetailActivity.MODE_DELETE_CONFIRM, task)
             }
             .setNegativeButton(getString(R.string.cancel)) { _, _ ->
+                // Se cancelado, limpa a tarefa selecionada
                 selectedTaskForContextMenu = null
             }
             .setOnDismissListener {
+                // Opcional: limpar a tarefa selecionada se o diálogo for dispensado sem clicar nos botões
+                // selectedTaskForContextMenu = null
             }
             .show()
     }
 
+    /**
+     * Chamado quando o menu de contexto é fechado.
+     * Usado aqui para limpar a referência à tarefa selecionada.
+     */
     override fun onContextMenuClosed(menu: Menu) {
         super.onContextMenuClosed(menu)
-        selectedTaskForContextMenu = null
+        selectedTaskForContextMenu = null // Limpa a tarefa selecionada
     }
 }
