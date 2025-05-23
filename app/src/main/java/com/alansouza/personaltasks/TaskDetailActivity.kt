@@ -215,7 +215,32 @@ class TaskDetailActivity : AppCompatActivity() {
         val dueDate = editTextTaskDueDate.text.toString().trim()
 
         var isValid = true
-        if (!isValid) return
+
+        if (title.isEmpty()) {
+            textFieldLayoutTitle.error = getString(R.string.error_title_empty)
+            if(isValid) editTextTaskTitle.requestFocus()
+            isValid = false
+        } else {
+            textFieldLayoutTitle.error = null
+        }
+
+        if (description.isEmpty()) {
+            Toast.makeText(this, getString(R.string.error_description_empty), Toast.LENGTH_SHORT).show()
+            if(isValid) editTextTaskDescription.requestFocus()
+            isValid = false
+        }
+
+        if (dueDate.isEmpty()) {
+            textFieldLayoutDueDate.error = getString(R.string.error_due_date_empty)
+            if(isValid) editTextTaskDueDate.requestFocus()
+            isValid = false
+        } else {
+            textFieldLayoutDueDate.error = null
+        }
+
+        if (!isValid) {
+            return
+        }
 
         val selectedImportanceDisplayString = spinnerImportanceLevel.selectedItem.toString()
         val importance = when(selectedImportanceDisplayString) {

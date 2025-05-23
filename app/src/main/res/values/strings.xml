@@ -33,5 +33,6 @@
     <string name="sort_by_importance">Ordenar por Importância</string>
     <string name="sort_more_important_first">Mais Importante Primeiro</string>
     <string name="sort_less_important_first">Menos Importante Primeiro</string>
+    <string name="error_description_empty">Descrição não pode ser vazia</string>
 
 </resources>
