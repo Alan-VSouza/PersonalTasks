@@ -21,6 +21,9 @@ O PersonalTasks permite aos usuários criar, visualizar, editar, ordenar e exclu
 *   Indicador visual de importância na lista de tarefas.
 *   Mensagem de estado vazio quando não há tarefas.
 
+## Video Exemplo
+![Video Apresentacao](./readme_assets/apresentacao_trabalho.mp4)
+
 ## Screenshots
 
 ### Tela Principal (Sem tarefas)
