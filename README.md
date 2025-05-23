@@ -22,7 +22,8 @@ O PersonalTasks permite aos usuários criar, visualizar, editar, ordenar e exclu
 *   Mensagem de estado vazio quando não há tarefas.
 
 ## Video Exemplo
-![Video Apresentacao](./readme_assets/apresentacao_trabalho.mp4)
+https://github.com/user-attachments/assets/7a311d74-b506-4903-b628-669702b8b0e8
+
 
 ## Screenshots
 
