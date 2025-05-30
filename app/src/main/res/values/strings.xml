@@ -8,6 +8,8 @@
     <string name="importance_high">Alta</string>
     <string name="importance_medium">Média</string>
     <string name="importance_light">Baixa</string>
+    <string name="status_incomplete">Pendente</string>
+    <string name="status_complete">Cumprida</string>
     <string name="title_new_task">Nova Tarefa</string>
     <string name="title_edit_task">Editar Tarefa</string>
     <string name="title_task_details">Detalhes da Tarefa</string>

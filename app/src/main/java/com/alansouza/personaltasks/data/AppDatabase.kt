@@ -43,7 +43,7 @@ class Converters {
  */
 @Database(
     entities = [Task::class], // Lista de tabelas (entidades) do banco
-    version = 1,              // Versão do banco. Incrementar ao mudar o esquema.
+    version = 2,              // Versão do banco. Incrementar ao mudar o esquema.
     exportSchema = false      // Não exportar o esquema do banco (opcional, mas comum para apps menores)
 )
 @TypeConverters(Converters::class) // Registra a classe de conversores
@@ -77,7 +77,7 @@ abstract class AppDatabase : RoomDatabase() {
                 )
                     // Permite que o Room recrie o banco se não houver uma migração definida
                     // ao incrementar a versão (útil para desenvolvimento).
-                    .fallbackToDestructiveMigration(false)
+                    .fallbackToDestructiveMigration(true)
                     .build()
                 INSTANCE = instance // Armazena a instância criada
                 instance // Retorna a nova instância

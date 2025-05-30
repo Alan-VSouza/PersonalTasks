@@ -18,6 +18,7 @@ import com.alansouza.personaltasks.data.AppDatabase
 import com.alansouza.personaltasks.data.TaskDao
 import com.alansouza.personaltasks.model.ImportanceLevel
 import com.alansouza.personaltasks.model.Task
+import com.alansouza.personaltasks.model.TaskStatus
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
@@ -51,6 +52,7 @@ class TaskDetailActivity : AppCompatActivity() {
     private lateinit var editTextTaskDueDate: TextInputEditText
     private lateinit var textFieldLayoutDueDate: TextInputLayout // Usado para exibir erros de validação da data
     private lateinit var spinnerImportanceLevel: Spinner
+    private lateinit var spinnerCompleteTasks: Spinner
     private lateinit var buttonSave: Button       // Botão principal (Salvar, Confirmar Exclusão)
     private lateinit var buttonCancel: Button     // Botão secundário (Cancelar, Voltar)
 
@@ -59,6 +61,7 @@ class TaskDetailActivity : AppCompatActivity() {
     private var originalDescription: String = ""
     private var originalDueDate: String = ""
     private var originalImportance: ImportanceLevel = ImportanceLevel.MEDIUM
+    private var originalState: TaskStatus = TaskStatus.INCOMPLETED
 
     // Componentes de dados e estado da Activity
     private lateinit var taskDao: TaskDao                // Objeto de acesso aos dados das tarefas (Room DAO)
@@ -80,6 +83,7 @@ class TaskDetailActivity : AppCompatActivity() {
         editTextTaskDueDate = findViewById(R.id.editTextTaskDueDate)
         textFieldLayoutDueDate = findViewById(R.id.textFieldLayoutDueDate)
         spinnerImportanceLevel = findViewById(R.id.spinnerImportanceLevel)
+        spinnerCompleteTasks = findViewById(R.id.finalizado)
         buttonSave = findViewById(R.id.buttonSave)
         buttonCancel = findViewById(R.id.buttonCancel)
 
@@ -92,6 +96,7 @@ class TaskDetailActivity : AppCompatActivity() {
         // Configura o DatePicker e o Spinner de importância
         setupDatePicker()
         setupImportanceSpinner()
+        setupTaskCompleted()
 
         // Obtém o modo de operação e o ID da tarefa (se houver) da Intent que iniciou esta Activity
         currentMode = intent.getStringExtra(EXTRA_MODE)
@@ -127,6 +132,7 @@ class TaskDetailActivity : AppCompatActivity() {
                 originalDescription = ""
                 originalDueDate = editTextTaskDueDate.text?.toString() ?: ""
                 originalImportance = ImportanceLevel.MEDIUM
+                originalState = TaskStatus.INCOMPLETED
             }
             MODE_EDIT -> { // Configuração para editar uma tarefa existente
                 supportActionBar?.title = getString(R.string.title_edit_task)
@@ -213,6 +219,27 @@ class TaskDetailActivity : AppCompatActivity() {
         editTextTaskDueDate.setText(sdf.format(calendar.time)) // Define o texto do campo
         textFieldLayoutDueDate.error = null // Limpa erros de data ao definir uma nova
     }
+
+    private fun setupTaskCompleted(){
+        val completedDisplay = TaskStatus.entries.map { status ->
+            when (status){
+                TaskStatus.INCOMPLETED -> getString(R.string.status_incomplete)
+                TaskStatus.COMPLETE -> getString(R.string.status_complete)
+            }
+        }
+        val adapter = ArrayAdapter(
+            this,
+            R.layout.spinner_item_dark,
+            completedDisplay
+        )
+        adapter.setDropDownViewResource(R.layout.spinner_item_dark)
+        spinnerCompleteTasks.adapter = adapter
+
+        if(currentMode == MODE_NEW){
+            spinnerCompleteTasks.setSelection(TaskStatus.entries.indexOf(TaskStatus.INCOMPLETED))
+        }
+    }
+
 
     /**
      * Configura o Spinner para seleção do nível de importância da tarefa.
@@ -304,6 +331,13 @@ class TaskDetailActivity : AppCompatActivity() {
 
         if (!isValid) return
 
+        val selectedTaskStatus = spinnerCompleteTasks.selectedItem.toString()
+        val status = when(selectedTaskStatus) {
+            getString(R.string.status_incomplete) -> TaskStatus.INCOMPLETED
+            getString(R.string.status_complete) -> TaskStatus.COMPLETE
+            else -> TaskStatus.INCOMPLETED
+        }
+
         // Obtém o nível de importância selecionado no Spinner
         val selectedImportanceDisplayString = spinnerImportanceLevel.selectedItem.toString()
         val importance = when(selectedImportanceDisplayString) {
@@ -318,7 +352,8 @@ class TaskDetailActivity : AppCompatActivity() {
                 title = title,
                 description = description,
                 dueDate = dueDate,
-                importance = importance
+                importance = importance,
+                isChecked = status
             )
             lifecycleScope.launch {
                 taskDao.insertTaskOnDatabase(newTask)
@@ -335,7 +370,8 @@ class TaskDetailActivity : AppCompatActivity() {
                     title = title,
                     description = description,
                     dueDate = dueDate,
-                    importance = importance
+                    importance = importance,
+                    isChecked = status
                 )
                 lifecycleScope.launch {
                     taskDao.updateTaskOnDatabase(updatedTask)
@@ -406,6 +442,11 @@ class TaskDetailActivity : AppCompatActivity() {
                     editTextTaskDueDate.setText("")
                 }
 
+                val statusIndex = TaskStatus.entries.indexOf(taskFromDb.isChecked)
+                if(statusIndex >= 0){
+                    spinnerCompleteTasks.setSelection(statusIndex)
+                }
+
                 val importanceIndex = ImportanceLevel.entries.indexOf(taskFromDb.importance)
                 if (importanceIndex >= 0) {
                     spinnerImportanceLevel.setSelection(importanceIndex)
@@ -415,6 +456,7 @@ class TaskDetailActivity : AppCompatActivity() {
                 originalDescription = taskFromDb.description
                 originalDueDate = taskFromDb.dueDate
                 originalImportance = taskFromDb.importance
+                originalState = taskFromDb.isChecked
             } else {
                 Toast.makeText(this@TaskDetailActivity, "Tarefa não encontrada.", Toast.LENGTH_SHORT).show()
                 setResult(Activity.RESULT_CANCELED)
@@ -434,6 +476,7 @@ class TaskDetailActivity : AppCompatActivity() {
         editTextTaskDueDate.isEnabled = false
         textFieldLayoutDueDate.isEnabled = false
         spinnerImportanceLevel.isEnabled = false
+        spinnerCompleteTasks.isEnabled = false
     }
 
     /**
@@ -449,10 +492,17 @@ class TaskDetailActivity : AppCompatActivity() {
             getString(R.string.importance_light) -> ImportanceLevel.LIGHT
             else -> ImportanceLevel.MEDIUM
         }
+        val currentState = when(spinnerCompleteTasks.selectedItem.toString()){
+            getString(R.string.status_incomplete) -> TaskStatus.INCOMPLETED
+            getString(R.string.status_complete) -> TaskStatus.COMPLETE
+            else -> TaskStatus.INCOMPLETED
+        }
+
         return currentTitle != originalTitle ||
                 currentDescription != originalDescription ||
                 currentDueDate != originalDueDate ||
-                currentImportance != originalImportance
+                currentImportance != originalImportance ||
+                currentState != originalState
     }
 
     /**

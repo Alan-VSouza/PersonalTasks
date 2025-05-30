@@ -13,6 +13,7 @@ import com.alansouza.personaltasks.MainActivity
 import com.alansouza.personaltasks.R
 import com.alansouza.personaltasks.model.ImportanceLevel
 import com.alansouza.personaltasks.model.Task
+import com.alansouza.personaltasks.model.TaskStatus
 
 /**
  * Adapter para o RecyclerView que exibe a lista de tarefas ([Task]).
@@ -50,6 +51,7 @@ class TaskAdapter : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallba
         private val dueDateTextView: TextView = itemView.findViewById(R.id.textViewTaskDueDate)
         private val importanceIndicatorView: View = itemView.findViewById(R.id.viewImportanceIndicator)
         private val importanceTextView: TextView = itemView.findViewById(R.id.textViewImportanceText)
+        private val taskFinalizada: TextView = itemView.findViewById(R.id.finalizado)
 
         init {
             // Configura o listener de clique longo para mostrar o menu de contexto
@@ -86,6 +88,12 @@ class TaskAdapter : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallba
                 ImportanceLevel.LIGHT -> ContextCompat.getColor(itemView.context, R.color.importance_light_color)
             }
             importanceIndicatorView.setBackgroundColor(importanceColor)
+
+            val taskStatusString = when (task.isChecked) {
+                TaskStatus.COMPLETE -> itemView.context.getString(R.string.status_complete)
+                TaskStatus.INCOMPLETED -> itemView.context.getString(R.string.status_incomplete)
+            }
+            taskFinalizada.text = taskStatusString
 
             // Define o texto do nível de importância
             val importanceTextString = when (task.importance) {
