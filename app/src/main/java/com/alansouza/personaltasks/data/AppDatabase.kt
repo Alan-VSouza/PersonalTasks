@@ -43,7 +43,7 @@ class Converters {
  */
 @Database(
     entities = [Task::class], // Lista de tabelas (entidades) do banco
-    version = 3,              // Versão do banco. Incrementar ao mudar o esquema.
+    version = 4,              // Versão do banco. Incrementar ao mudar o esquema.
     exportSchema = false      // Não exportar o esquema do banco (opcional, mas comum para apps menores)
 )
 @TypeConverters(Converters::class) // Registra a classe de conversores

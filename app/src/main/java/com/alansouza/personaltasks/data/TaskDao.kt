@@ -8,6 +8,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.alansouza.personaltasks.model.Task
+import com.alansouza.personaltasks.model.TaskStatus
 
 /**
  * Data Access Object (DAO) para a entidade [Task].
@@ -85,4 +86,14 @@ interface TaskDao {
      */
     @Query("SELECT * FROM tasks WHERE id = :taskId")
     suspend fun getTaskById(taskId: Int): Task?
+
+    @Query("SELECT * FROM tasks WHERE status = 'DELETED'")
+    fun getDeletedTasks(): LiveData<List<Task>>
+
+    @Query("UPDATE tasks SET status = :newStatus WHERE id = :taskId")
+    suspend fun updateTaskStatus(taskId: Int, newStatus: TaskStatus)
+
+    @Query("UPDATE tasks SET status = 'COMPLETED' WHERE id = :taskId")
+    suspend fun markTaskAsCompleted(taskId: Int)
+
 }
