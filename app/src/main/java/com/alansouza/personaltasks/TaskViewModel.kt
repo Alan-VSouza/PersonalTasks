@@ -1,32 +1,48 @@
-package com.alansouza.personaltasks.viewmodel
+package com.alansouza.personaltasks
 
 import android.app.Application
-import androidx.lifecycle.* // Adiciona esta importação
-import com.alansouza.personaltasks.data.AppDatabase
-import com.alansouza.personaltasks.data.TaskDao
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import com.alansouza.personaltasks.data.FirebaseTaskRepository
 import com.alansouza.personaltasks.model.Task
 import com.alansouza.personaltasks.model.TaskStatus
-import kotlinx.coroutines.launch
 
 class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val taskDao: TaskDao = AppDatabase.getDatabase(application).taskDao()
+    private val repository = FirebaseTaskRepository()
+    private val _activeTasks = MutableLiveData<List<Task>>()
+    private val _deletedTasks = MutableLiveData<List<Task>>()
 
-    private val _sortOrder = MutableLiveData<Boolean>().apply { value = true }
+    val activeTasks: LiveData<List<Task>> get() = _activeTasks
+    val deletedTasks: LiveData<List<Task>> get() = _deletedTasks
 
-    val tasks: LiveData<List<Task>> = _sortOrder.switchMap { sortOrder ->
-        taskDao.getAllTasksOrdered(sortOrder)
+    init {
+        loadActiveTasks(true)
+        loadDeletedTasks()
     }
 
-    val deletedTasks: LiveData<List<Task>> = taskDao.getDeletedTasks()
+    fun loadActiveTasks(sortMoreImportantFirst: Boolean) {
+        repository.getActiveTasks(sortMoreImportantFirst).observeForever { tasks ->
+            _activeTasks.value = tasks
+        }
+    }
+
+    fun loadDeletedTasks() {
+        repository.getDeletedTasks().observeForever { tasks ->
+            _deletedTasks.value = tasks
+        }
+    }
+
+    fun updateTaskStatus(taskId: String, newStatus: TaskStatus) {
+        when (newStatus) {
+            TaskStatus.DELETED -> repository.softDeleteTask(taskId)
+            TaskStatus.ACTIVE -> repository.reactivateTask(taskId)
+            TaskStatus.COMPLETED -> repository.markTaskAsCompleted(taskId)
+        }
+    }
 
     fun setSortOrder(moreImportantFirst: Boolean) {
-        _sortOrder.value = moreImportantFirst
-    }
-
-    fun updateTaskStatus(taskId: Int, newStatus: TaskStatus) {
-        viewModelScope.launch {
-            taskDao.updateTaskStatus(taskId, newStatus)
-        }
+        loadActiveTasks(moreImportantFirst)
     }
 }
