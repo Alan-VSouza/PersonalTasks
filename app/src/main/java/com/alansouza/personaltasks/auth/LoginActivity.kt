@@ -5,11 +5,11 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.alansouza.personaltasks.MainActivity
 import com.alansouza.personaltasks.R
-import android.widget.ProgressBar
 import com.google.firebase.auth.FirebaseAuth
 
 class LoginActivity : AppCompatActivity() {
@@ -30,12 +30,12 @@ class LoginActivity : AppCompatActivity() {
         buttonLogin = findViewById(R.id.buttonLogin)
         buttonRegister = findViewById(R.id.buttonRegister)
         progressBar = findViewById(R.id.progressBar)
-        buttonLogin.isEnabled = false
-
         buttonLogin.setOnClickListener {
             val email = editTextEmail.text.toString().trim()
             val password = editTextPassword.text.toString().trim()
             if (email.isNotEmpty() && password.isNotEmpty()) {
+                progressBar.visibility = View.VISIBLE
+                buttonLogin.isEnabled = false
                 auth.signInWithEmailAndPassword(email, password)
                     .addOnCompleteListener(this) { task ->
                         progressBar.visibility = View.GONE
@@ -44,7 +44,7 @@ class LoginActivity : AppCompatActivity() {
                             startActivity(Intent(this, MainActivity::class.java))
                             finishAffinity()
                         } else {
-                            Toast.makeText(this, "Erro ao logar: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Erro: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                         }
                     }
             } else {
