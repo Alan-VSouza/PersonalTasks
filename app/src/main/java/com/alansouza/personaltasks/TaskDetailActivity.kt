@@ -13,464 +13,436 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
-import androidx.lifecycle.lifecycleScope
-import com.alansouza.personaltasks.data.AppDatabase
-import com.alansouza.personaltasks.data.TaskDao
+import com.alansouza.personaltasks.databinding.ActivityTaskDetailBinding
 import com.alansouza.personaltasks.model.ImportanceLevel
 import com.alansouza.personaltasks.model.Task
 import com.alansouza.personaltasks.model.TaskStatus
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.FirebaseDatabase
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-/**
- * Activity para Criar, Visualizar, Editar ou Confirmar a Exclusão de uma Tarefa.
- * O comportamento da tela é definido pelo 'modo' passado via Intent.
- */
 class TaskDetailActivity : AppCompatActivity() {
 
-    // Companion object para definir constantes usadas para passar dados via Intent e definir modos de operação.
     companion object {
-        const val EXTRA_MODE = "MODE"                     // Chave para o modo da activity (NOVO, EDITAR, etc.)
-        const val EXTRA_TASK_ID = "TASK_ID"               // Chave para o ID da tarefa (usado em EDITAR, DETALHES, EXCLUIR)
-        const val EXTRA_MESSAGE_AFTER_OPERATION = "MESSAGE_AFTER_OPERATION" // Chave para a mensagem de feedback para MainActivity
-        // Modos de operação da Activity
-        const val MODE_NEW = "NEW"                        // Modo para criar uma nova tarefa
-        const val MODE_EDIT = "EDIT"                      // Modo para editar uma tarefa existente
-        const val MODE_VIEW_DETAILS = "DETAILS"           // Modo para visualizar detalhes de uma tarefa (somente leitura)
-        const val MODE_DELETE_CONFIRM = "DELETE_CONFIRM"  // Modo para confirmar a exclusão de uma tarefa
+        const val EXTRA_MODE = "MODE"
+        const val EXTRA_TASK_ID = "TASK_ID"
+        const val EXTRA_MESSAGE_AFTER_OPERATION = "MESSAGE_AFTER_OPERATION"
+        const val MODE_NEW = "NEW"
+        const val MODE_EDIT = "EDIT"
+        const val MODE_VIEW_DETAILS = "DETAILS"
+        const val MODE_DELETE_CONFIRM = "DELETE_CONFIRM"
     }
 
-    // Declaração das Views da UI que serão inicializadas no onCreate
+    private lateinit var binding: ActivityTaskDetailBinding
     private lateinit var toolbarTaskDetail: Toolbar
     private lateinit var editTextTaskTitle: TextInputEditText
-    private lateinit var textFieldLayoutTitle: TextInputLayout // Usado para exibir erros de validação do título
+    private lateinit var textFieldLayoutTitle: TextInputLayout
     private lateinit var editTextTaskDescription: TextInputEditText
     private lateinit var editTextTaskDueDate: TextInputEditText
-    private lateinit var textFieldLayoutDueDate: TextInputLayout // Usado para exibir erros de validação da data
+    private lateinit var textFieldLayoutDueDate: TextInputLayout
     private lateinit var spinnerImportanceLevel: Spinner
     private lateinit var spinnerCompleteTasks: Spinner
-    private lateinit var buttonSave: Button       // Botão principal (Salvar, Confirmar Exclusão)
-    private lateinit var buttonCancel: Button     // Botão secundário (Cancelar, Voltar)
+    private lateinit var buttonSave: Button
+    private lateinit var buttonCancel: Button
 
-    // Para detecção de alterações não salvas
     private var originalTitle: String = ""
     private var originalDescription: String = ""
     private var originalDueDate: String = ""
     private var originalImportance: ImportanceLevel = ImportanceLevel.MEDIUM
     private var originalState: TaskStatus = TaskStatus.ACTIVE
 
-    // Componentes de dados e estado da Activity
-    private lateinit var taskDao: TaskDao                // Objeto de acesso aos dados das tarefas (Room DAO)
-    private var currentMode: String? = null             // Modo de operação atual da Activity
-    private val calendar = Calendar.getInstance()       // Instância do calendário para o DatePicker
-
-    private var currentTask: Task? = null               // Armazena a tarefa atual sendo editada, visualizada ou excluída
-    private var currentTaskIdFromIntent: Int = -1       // ID da tarefa recebido da MainActivity (se não for MODE_NEW)
+    private var currentMode: String? = null
+    private val calendar = Calendar.getInstance()
+    private var currentTask: Task? = null
+    private var currentTaskId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_task_detail) // Define o layout da Activity
+        binding = ActivityTaskDetailBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        // Inicializa as Views buscando-as pelo ID no layout
-        toolbarTaskDetail = findViewById(R.id.toolbar_task_detail)
-        editTextTaskTitle = findViewById(R.id.editTextTaskTitle)
-        textFieldLayoutTitle = findViewById(R.id.textFieldLayoutTitle)
-        editTextTaskDescription = findViewById(R.id.editTextTaskDescription)
-        editTextTaskDueDate = findViewById(R.id.editTextTaskDueDate)
-        textFieldLayoutDueDate = findViewById(R.id.textFieldLayoutDueDate)
-        spinnerImportanceLevel = findViewById(R.id.spinnerImportanceLevel)
-        spinnerCompleteTasks = findViewById(R.id.finalizado)
-        buttonSave = findViewById(R.id.buttonSave)
-        buttonCancel = findViewById(R.id.buttonCancel)
+        // Inicialização das views
+        toolbarTaskDetail = binding.toolbarTaskDetail
+        editTextTaskTitle = binding.editTextTaskTitle
+        textFieldLayoutTitle = binding.textFieldLayoutTitle
+        editTextTaskDescription = binding.editTextTaskDescription
+        editTextTaskDueDate = binding.editTextTaskDueDate
+        textFieldLayoutDueDate = binding.textFieldLayoutDueDate
+        spinnerImportanceLevel = binding.spinnerImportanceLevel
+        spinnerCompleteTasks = binding.finalizado
+        buttonSave = binding.buttonSave
+        buttonCancel = binding.buttonCancel
 
-        // Configura a Toolbar como a ActionBar da Activity e habilita o botão "voltar" (up)
         setSupportActionBar(toolbarTaskDetail)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        // Inicializa o DAO para acesso ao banco de dados
-        taskDao = AppDatabase.getDatabase(applicationContext).taskDao()
-        // Configura o DatePicker e o Spinner de importância
+        // Configurações iniciais
         setupDatePicker()
         setupImportanceSpinner()
         setupTaskCompleted()
 
-        // Obtém o modo de operação e o ID da tarefa (se houver) da Intent que iniciou esta Activity
+        // Obtém modo e ID da tarefa
         currentMode = intent.getStringExtra(EXTRA_MODE)
-        currentTaskIdFromIntent = intent.getIntExtra(EXTRA_TASK_ID, -1)
+        currentTaskId = intent.getStringExtra(EXTRA_TASK_ID)
 
-        // Ajusta a UI (títulos, botões, campos editáveis) com base no modo de operação
+        // Configura UI conforme o modo
         setupUIForMode()
 
-        // Define o listener de clique para o botão principal (Salvar/Confirmar Exclusão)
-        buttonSave.setOnClickListener {
-            handleSaveOrConfirmAction()
-        }
-
-        // Define o listener de clique para o botão Cancelar/Voltar
-        buttonCancel.setOnClickListener {
-            tryExitWithConfirmation()
-        }
+        // Configura listeners
+        buttonSave.setOnClickListener { handleSaveOrConfirmAction() }
+        buttonCancel.setOnClickListener { tryExitWithConfirmation() }
     }
 
-    /**
-     * Configura a interface do usuário (título da Toolbar, texto e visibilidade dos botões,
-     * campos editáveis) de acordo com o modo de operação atual ([currentMode]).
-     */
     private fun setupUIForMode() {
         when (currentMode) {
-            MODE_NEW -> { // Configuração para criar uma nova tarefa
+            MODE_NEW -> {
                 supportActionBar?.title = getString(R.string.title_new_task)
                 buttonSave.text = getString(R.string.button_save)
-                buttonSave.visibility = View.VISIBLE // Botão Salvar visível
-                updateDateInView() // Define a data atual no campo de data para novas tarefas
-                // Guarda os valores originais para detecção de alterações
+                buttonSave.visibility = View.VISIBLE
+                updateDateInView()
                 originalTitle = ""
                 originalDescription = ""
                 originalDueDate = editTextTaskDueDate.text?.toString() ?: ""
                 originalImportance = ImportanceLevel.MEDIUM
                 originalState = TaskStatus.ACTIVE
             }
-            MODE_EDIT -> { // Configuração para editar uma tarefa existente
-                supportActionBar?.title = getString(R.string.title_edit_task)
-                buttonSave.text = getString(R.string.button_save)
-                buttonSave.visibility = View.VISIBLE
-                if (currentTaskIdFromIntent != -1) { // Se um ID válido foi passado
-                    loadTaskDetails(currentTaskIdFromIntent) // Carrega os dados da tarefa para edição
+            MODE_EDIT, MODE_VIEW_DETAILS, MODE_DELETE_CONFIRM -> {
+                if (currentTaskId != null) {
+                    loadTaskDetails(currentTaskId!!)
                 } else {
-                    // Se o ID for inválido, mostra erro e fecha a tela
-                    Toast.makeText(this, "Erro: ID da tarefa inválido para edição.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "ID da tarefa inválido", Toast.LENGTH_LONG).show()
                     finish()
                 }
-            }
-            MODE_VIEW_DETAILS -> { // Configuração para visualizar detalhes da tarefa (somente leitura)
-                supportActionBar?.title = getString(R.string.title_task_details)
-                buttonSave.visibility = View.GONE // Esconde o botão Salvar/Confirmar
-                buttonCancel.text = getString(R.string.button_cancel)
-                if (currentTaskIdFromIntent != -1) {
-                    loadTaskDetails(currentTaskIdFromIntent)
-                    disableEditing() // Desabilita a edição dos campos
-                } else {
-                    Toast.makeText(this, "Erro: ID da tarefa inválido para visualização.", Toast.LENGTH_LONG).show()
-                    finish()
+
+                when (currentMode) {
+                    MODE_EDIT -> {
+                        supportActionBar?.title = getString(R.string.title_edit_task)
+                        buttonSave.text = getString(R.string.button_save)
+                    }
+                    MODE_VIEW_DETAILS -> {
+                        supportActionBar?.title = getString(R.string.title_task_details)
+                        buttonSave.visibility = View.GONE
+                        disableEditing()
+                    }
+                    MODE_DELETE_CONFIRM -> {
+                        supportActionBar?.title = getString(R.string.delete_task_title)
+                        buttonSave.text = getString(R.string.delete)
+                        disableEditing()
+                    }
                 }
             }
-            MODE_DELETE_CONFIRM -> { // Configuração para confirmar a exclusão de uma tarefa
-                supportActionBar?.title = getString(R.string.delete_task_title) // Título como "Excluir Tarefa?"
-                buttonSave.text = getString(R.string.delete) // Botão Salvar vira "Excluir"
-                buttonSave.visibility = View.VISIBLE
-                buttonCancel.text = getString(R.string.cancel)
-                if (currentTaskIdFromIntent != -1) {
-                    loadTaskDetails(currentTaskIdFromIntent)
-                    disableEditing() // Campos não são editáveis neste modo
-                } else {
-                    Toast.makeText(this, "Erro: ID da tarefa inválido para exclusão.", Toast.LENGTH_LONG).show()
-                    finish()
-                }
-            }
-            else -> { // Se o modo for desconhecido ou nulo
-                Toast.makeText(this, "Modo de operação desconhecido.", Toast.LENGTH_LONG).show()
+            else -> {
+                Toast.makeText(this, "Modo de operação desconhecido", Toast.LENGTH_LONG).show()
                 finish()
             }
         }
     }
 
-    /**
-     * Configura o DatePickerDialog para ser exibido quando o campo de data limite é clicado.
-     * Agora SEMPRE impede datas passadas, inclusive na edição.
-     */
     private fun setupDatePicker() {
-        val dateSetListener = DatePickerDialog.OnDateSetListener { _, year, monthOfYear, dayOfMonth ->
+        val dateSetListener = DatePickerDialog.OnDateSetListener { _, year, month, day ->
             calendar.set(Calendar.YEAR, year)
-            calendar.set(Calendar.MONTH, monthOfYear)
-            calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+            calendar.set(Calendar.MONTH, month)
+            calendar.set(Calendar.DAY_OF_MONTH, day)
             updateDateInView()
         }
 
         editTextTaskDueDate.setOnClickListener {
             textFieldLayoutDueDate.error = null
-            val dialog = DatePickerDialog(
+            DatePickerDialog(
                 this,
                 dateSetListener,
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
                 calendar.get(Calendar.DAY_OF_MONTH)
-            )
-            val todayCalendar = Calendar.getInstance()
-            todayCalendar.set(Calendar.HOUR_OF_DAY, 0)
-            todayCalendar.set(Calendar.MINUTE, 0)
-            todayCalendar.set(Calendar.SECOND, 0)
-            todayCalendar.set(Calendar.MILLISECOND, 0)
-            dialog.datePicker.minDate = todayCalendar.timeInMillis
-            dialog.show()
+            ).apply {
+                datePicker.minDate = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+            }.show()
         }
     }
 
-    /**
-     * Atualiza o campo de texto [editTextTaskDueDate] com a data formatada ("dd/MM/yyyy")
-     * a partir do objeto [calendar].
-     */
     private fun updateDateInView() {
-        val myFormat = "dd/MM/yyyy" // Formato desejado para a data
-        val sdf = SimpleDateFormat(myFormat, Locale.getDefault()) // Objeto para formatar a data
-        editTextTaskDueDate.setText(sdf.format(calendar.time)) // Define o texto do campo
-        textFieldLayoutDueDate.error = null // Limpa erros de data ao definir uma nova
+        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        editTextTaskDueDate.setText(sdf.format(calendar.time))
+        textFieldLayoutDueDate.error = null
     }
 
-    private fun setupTaskCompleted(){
-        val completedDisplay = TaskStatus.entries
-            .filter { it != TaskStatus.DELETED }
-            .map { status ->
-                when (status) {
-                    TaskStatus.ACTIVE -> getString(R.string.status_incomplete)
-                    TaskStatus.COMPLETED -> getString(R.string.status_complete)
-                    TaskStatus.DELETED -> getString(R.string.status_deleted)
-                }
-            }
-        val adapter = ArrayAdapter(
+    private fun setupTaskCompleted() {
+        val statusOptions = listOf(
+            getString(R.string.status_incomplete),
+            getString(R.string.status_complete)
+        )
+
+        spinnerCompleteTasks.adapter = ArrayAdapter(
             this,
             R.layout.spinner_item_dark,
-            completedDisplay
-        )
-        adapter.setDropDownViewResource(R.layout.spinner_item_dark)
-        spinnerCompleteTasks.adapter = adapter
+            statusOptions
+        ).apply {
+            setDropDownViewResource(R.layout.spinner_item_dark)
+        }
 
-        if(currentMode == MODE_NEW){
-            spinnerCompleteTasks.setSelection(TaskStatus.entries.indexOf(TaskStatus.ACTIVE))
+        if (currentMode == MODE_NEW) {
+            spinnerCompleteTasks.setSelection(0)
         }
     }
 
-    /**
-     * Configura o Spinner para seleção do nível de importância da tarefa.
-     * Preenche o Spinner com os níveis de importância traduzidos e define um valor padrão.
-     */
     private fun setupImportanceSpinner() {
-        // Mapeia os valores do enum ImportanceLevel para suas strings traduzidas
-        val importanceLevelsDisplay = ImportanceLevel.entries.map { level ->
-            when (level) {
+        val importanceOptions = ImportanceLevel.entries.map {
+            when (it) {
                 ImportanceLevel.HIGH -> getString(R.string.importance_high)
                 ImportanceLevel.MEDIUM -> getString(R.string.importance_medium)
                 ImportanceLevel.LIGHT -> getString(R.string.importance_light)
             }
         }
-        // Cria um ArrayAdapter para popular o Spinner
-        val adapter = ArrayAdapter(
-            this,
-            R.layout.spinner_item_dark, // Layout customizado para o item selecionado do Spinner
-            importanceLevelsDisplay
-        )
-        // Layout customizado para os itens na lista dropdown do Spinner
-        adapter.setDropDownViewResource(R.layout.spinner_item_dark)
-        spinnerImportanceLevel.adapter = adapter // Define o adapter no Spinner
 
-        // Se for uma nova tarefa, define a importância padrão como MÉDIA
+        spinnerImportanceLevel.adapter = ArrayAdapter(
+            this,
+            R.layout.spinner_item_dark,
+            importanceOptions
+        ).apply {
+            setDropDownViewResource(R.layout.spinner_item_dark)
+        }
+
         if (currentMode == MODE_NEW) {
-            spinnerImportanceLevel.setSelection(ImportanceLevel.entries.indexOf(ImportanceLevel.MEDIUM))
+            spinnerImportanceLevel.setSelection(1) // MÉDIA
         }
     }
 
-    /**
-     * Lida com a ação do botão principal.
-     * Chama [saveOrUpdateTask] para os modos NOVO/EDITAR,
-     * ou [deleteTaskConfirmed] para o modo CONFIRMAR_EXCLUSAO.
-     */
     private fun handleSaveOrConfirmAction() {
         when (currentMode) {
             MODE_NEW, MODE_EDIT -> saveOrUpdateTask()
             MODE_DELETE_CONFIRM -> deleteTaskConfirmed()
-            else -> {
-                Toast.makeText(this, "Ação inválida para o modo atual.", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 
-    /**
-     * Valida os campos do formulário (título, descrição, data limite).
-     * Agora inclui limites de caracteres.
-     */
     private fun saveOrUpdateTask() {
+        // 1. Coletar dados
         val title = editTextTaskTitle.text.toString().trim()
         val description = editTextTaskDescription.text.toString().trim()
         val dueDate = editTextTaskDueDate.text.toString().trim()
 
+        // 2. Validação completa
+        if (title.isEmpty()) {
+            textFieldLayoutTitle.error = "Título obrigatório"
+            return
+        }
+        if (description.isEmpty()) {
+            textFieldLayoutTitle.error = null
+            editTextTaskDescription.error = "Descrição obrigatória"
+            return
+        }
+        if (dueDate.isEmpty()) {
+            textFieldLayoutTitle.error = null
+            editTextTaskDescription.error = null
+            textFieldLayoutDueDate.error = "Data obrigatória"
+            return
+        }
+
+        // 3. Limpar erros
+        textFieldLayoutTitle.error = null
+        editTextTaskDescription.error = null
+        textFieldLayoutDueDate.error = null
+
+        // 4. Obter status e importância
+        val status = when (spinnerCompleteTasks.selectedItem.toString()) {
+            getString(R.string.status_complete) -> TaskStatus.COMPLETED
+            else -> TaskStatus.ACTIVE
+        }
+
+        val importance = when (spinnerImportanceLevel.selectedItem.toString()) {
+            getString(R.string.importance_high) -> ImportanceLevel.HIGH
+            getString(R.string.importance_light) -> ImportanceLevel.LIGHT
+            else -> ImportanceLevel.MEDIUM
+        }
+
+        // 5. Verificar autenticação
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) {
+            Toast.makeText(this, "Usuário não autenticado", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val database = FirebaseDatabase.getInstance().reference
+        val tasksRef = database.child("tasks").child(userId)
+
+        when (currentMode) {
+            MODE_NEW -> {
+                // 6. Criar nova tarefa
+                val newTaskRef = tasksRef.push()
+                val newTask = Task(
+                    id = newTaskRef.key ?: "",
+                    title = title,
+                    description = description,
+                    dueDate = dueDate,
+                    importance = importance,
+                    status = status
+                )
+
+                newTaskRef.setValue(newTask)
+                    .addOnSuccessListener {
+                        // 7. Feedback visual e encerramento
+                        Toast.makeText(this, "Tarefa criada com sucesso!", Toast.LENGTH_SHORT).show()
+
+                        val resultIntent = Intent().apply {
+                            putExtra(EXTRA_MESSAGE_AFTER_OPERATION, "Tarefa criada com sucesso!")
+                        }
+                        setResult(Activity.RESULT_OK, resultIntent)
+                        finish()
+                    }
+                    .addOnFailureListener { e ->
+                        Toast.makeText(this, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
+                    }
+            }
+
+            MODE_EDIT -> {
+                // 8. Atualizar tarefa existente
+                currentTask?.let { task ->
+                    val updatedTask = task.copy(
+                        title = title,
+                        description = description,
+                        dueDate = dueDate,
+                        importance = importance,
+                        status = status
+                    )
+
+                    tasksRef.child(task.id).setValue(updatedTask)
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "Tarefa atualizada!", Toast.LENGTH_SHORT).show()
+
+                            val resultIntent = Intent().apply {
+                                putExtra(EXTRA_MESSAGE_AFTER_OPERATION, "Tarefa atualizada!")
+                            }
+                            setResult(Activity.RESULT_OK, resultIntent)
+                            finish()
+                        }
+                        .addOnFailureListener { e ->
+                            Toast.makeText(this, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                } ?: run {
+                    Toast.makeText(this, "Tarefa não encontrada", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+
+    private fun validateFields(title: String, description: String, dueDate: String): Boolean {
         var isValid = true
 
-        // Validação do Título
         if (title.isEmpty()) {
-            textFieldLayoutTitle.error = getString(R.string.error_title_empty)
-            editTextTaskTitle.requestFocus()
+            textFieldLayoutTitle.error = "Título obrigatório"
             isValid = false
         } else if (title.length > 50) {
-            textFieldLayoutTitle.error = "Título deve ter no máximo 50 caracteres"
-            editTextTaskTitle.requestFocus()
+            textFieldLayoutTitle.error = "Máximo 50 caracteres"
             isValid = false
         } else {
             textFieldLayoutTitle.error = null
         }
 
-        // Validação da Descrição
-        if (isValid && description.isEmpty()) {
-            Toast.makeText(this, getString(R.string.error_description_empty), Toast.LENGTH_SHORT).show()
-            editTextTaskDescription.requestFocus()
+        if (description.isEmpty()) {
+            Toast.makeText(this, "Descrição obrigatória", Toast.LENGTH_SHORT).show()
             isValid = false
-        } else if (isValid && description.length > 250) {
-            Toast.makeText(this, "Descrição deve ter no máximo 250 caracteres", Toast.LENGTH_SHORT).show()
-            editTextTaskDescription.requestFocus()
+        } else if (description.length > 250) {
+            Toast.makeText(this, "Máximo 250 caracteres", Toast.LENGTH_SHORT).show()
             isValid = false
         }
 
-        // Validação da Data Limite
-        if (isValid && dueDate.isEmpty()) {
-            textFieldLayoutDueDate.error = getString(R.string.error_due_date_empty)
-            editTextTaskDueDate.requestFocus()
+        if (dueDate.isEmpty()) {
+            textFieldLayoutDueDate.error = "Data obrigatória"
             isValid = false
         } else {
             textFieldLayoutDueDate.error = null
         }
 
-        if (!isValid) return
+        return isValid
+    }
 
-        val selectedTaskStatus = spinnerCompleteTasks.selectedItem.toString()
-        val status = when(selectedTaskStatus) {
-            getString(R.string.status_incomplete) -> TaskStatus.ACTIVE
-            getString(R.string.status_complete) -> TaskStatus.COMPLETED
-            else -> TaskStatus.ACTIVE
+    private fun handleSuccess(message: String) {
+        setResult(Activity.RESULT_OK, Intent().apply {
+            putExtra(EXTRA_MESSAGE_AFTER_OPERATION, message)
+        })
+        finish()
+    }
+
+    private fun deleteTaskConfirmed() {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null && currentTask != null) {
+            FirebaseDatabase.getInstance().reference
+                .child("tasks")
+                .child(userId)
+                .child(currentTask!!.id)
+                .child("status")
+                .setValue(TaskStatus.DELETED.name)
+                .addOnSuccessListener {
+                    handleSuccess("Tarefa movida para excluídas")
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "Erro: ${e.message}", Toast.LENGTH_LONG).show()
+                }
         }
+    }
 
-        // Obtém o nível de importância selecionado no Spinner
-        val selectedImportanceDisplayString = spinnerImportanceLevel.selectedItem.toString()
-        val importance = when(selectedImportanceDisplayString) {
-            getString(R.string.importance_high) -> ImportanceLevel.HIGH
-            getString(R.string.importance_medium) -> ImportanceLevel.MEDIUM
-            getString(R.string.importance_light) -> ImportanceLevel.LIGHT
-            else -> ImportanceLevel.MEDIUM
-        }
+    private fun loadTaskDetails(taskId: String) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            FirebaseDatabase.getInstance().reference
+                .child("tasks")
+                .child(userId)
+                .child(taskId)
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    currentTask = snapshot.getValue(Task::class.java)?.apply {
+                        id = taskId
+                    }
 
-        if (currentMode == MODE_NEW) {
-            val newTask = Task(
-                title = title,
-                description = description,
-                dueDate = dueDate,
-                importance = importance,
-                status = status
-            )
-            lifecycleScope.launch {
-                taskDao.insertTaskOnDatabase(newTask)
-                val operationMessage = getString(R.string.task_created_successfully)
-                val resultIntent = Intent()
-                resultIntent.putExtra(EXTRA_MESSAGE_AFTER_OPERATION, operationMessage)
-                setResult(Activity.RESULT_OK, resultIntent)
-                finish()
-            }
-        } else if (currentMode == MODE_EDIT) {
-            val taskToUpdate = currentTask
-            if (taskToUpdate != null) {
-                val updatedTask = taskToUpdate.copy(
-                    title = title,
-                    description = description,
-                    dueDate = dueDate,
-                    importance = importance
-                )
-                lifecycleScope.launch {
-                    taskDao.updateTaskOnDatabase(updatedTask)
-                    val operationMessage = getString(R.string.task_updated_successfully)
-                    val resultIntent = Intent()
-                    resultIntent.putExtra(EXTRA_MESSAGE_AFTER_OPERATION, operationMessage)
-                    setResult(Activity.RESULT_OK, resultIntent)
+                    currentTask?.let { task ->
+                        // Preenche UI
+                        editTextTaskTitle.setText(task.title)
+                        editTextTaskDescription.setText(task.description)
+                        editTextTaskDueDate.setText(task.dueDate)
+
+                        // Configura spinners
+                        spinnerImportanceLevel.setSelection(
+                            when (task.importance) {
+                                ImportanceLevel.HIGH -> 0
+                                ImportanceLevel.LIGHT -> 2
+                                else -> 1
+                            }
+                        )
+
+                        spinnerCompleteTasks.setSelection(
+                            when (task.status) {
+                                TaskStatus.COMPLETED -> 1
+                                else -> 0
+                            }
+                        )
+
+                        // Salva valores originais
+                        originalTitle = task.title
+                        originalDescription = task.description
+                        originalDueDate = task.dueDate
+                        originalImportance = task.importance
+                        originalState = task.status
+                    } ?: run {
+                        Toast.makeText(this, "Tarefa não encontrada", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
+                }
+                .addOnFailureListener {
+                    Toast.makeText(this, "Erro ao carregar tarefa", Toast.LENGTH_SHORT).show()
                     finish()
                 }
-            } else {
-                Toast.makeText(this, "Erro ao salvar: tarefa original não encontrada.", Toast.LENGTH_LONG).show()
-                setResult(Activity.RESULT_CANCELED)
-                finish()
-            }
         }
     }
 
-    /**
-     * Deleta a [currentTask] do banco de dados.
-     * Chamado quando o usuário clica no botão "Excluir" no modo [MODE_DELETE_CONFIRM].
-     */
-    private fun deleteTaskConfirmed() {
-        val taskToDelete = currentTask
-        if (taskToDelete != null) {
-            lifecycleScope.launch {
-                taskDao.deleteTaskOnDatabase(taskToDelete)
-                val operationMessage = getString(R.string.task_deleted_message, taskToDelete.title)
-                val resultIntent = Intent()
-                resultIntent.putExtra(EXTRA_MESSAGE_AFTER_OPERATION, operationMessage)
-                setResult(Activity.RESULT_OK, resultIntent)
-                finish()
-            }
-        } else {
-            Toast.makeText(this, "Erro ao excluir: tarefa não encontrada.", Toast.LENGTH_LONG).show()
-            setResult(Activity.RESULT_CANCELED)
-            finish()
-        }
-    }
-
-    /**
-     * Carrega os detalhes de uma tarefa existente (pelo [taskId]) do banco de dados
-     * e preenche os campos da UI com esses dados.
-     * Também salva os valores originais para detecção de alterações.
-     */
-    private fun loadTaskDetails(taskId: Int) {
-        lifecycleScope.launch {
-            val taskFromDb = taskDao.getTaskById(taskId)
-            currentTask = taskFromDb
-
-            if (taskFromDb != null) {
-                editTextTaskTitle.setText(taskFromDb.title)
-                editTextTaskDescription.setText(taskFromDb.description)
-
-                if (taskFromDb.dueDate.isNotEmpty()) {
-                    try {
-                        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-                        val parsedDate = sdf.parse(taskFromDb.dueDate)
-                        if (parsedDate != null) {
-                            calendar.time = parsedDate
-                            updateDateInView()
-                        } else {
-                            editTextTaskDueDate.setText("")
-                        }
-                    } catch (e: Exception) {
-                        editTextTaskDueDate.setText("")
-                    }
-                } else {
-                    editTextTaskDueDate.setText("")
-                }
-
-                val statusIndex = listOf(TaskStatus.ACTIVE, TaskStatus.COMPLETED)
-                    .indexOf(taskFromDb?.status ?: TaskStatus.ACTIVE)
-                if (statusIndex >= 0) {
-                    spinnerCompleteTasks.setSelection(statusIndex)
-                }
-
-                val importanceIndex = ImportanceLevel.entries.indexOf(taskFromDb.importance)
-                if (importanceIndex >= 0) {
-                    spinnerImportanceLevel.setSelection(importanceIndex)
-                }
-                // Salva os valores originais
-                originalTitle = taskFromDb.title
-                originalDescription = taskFromDb.description
-                originalDueDate = taskFromDb.dueDate
-                originalImportance = taskFromDb.importance
-                originalState = taskFromDb.status
-            } else {
-                Toast.makeText(this@TaskDetailActivity, "Tarefa não encontrada.", Toast.LENGTH_SHORT).show()
-                setResult(Activity.RESULT_CANCELED)
-                finish()
-            }
-        }
-    }
-
-    /**
-     * Desabilita os campos de edição da UI.
-     * Usado nos modos [MODE_VIEW_DETAILS] e [MODE_DELETE_CONFIRM] para tornar os campos somente leitura.
-     */
     private fun disableEditing() {
         editTextTaskTitle.isEnabled = false
         textFieldLayoutTitle.isEnabled = false
@@ -481,21 +453,18 @@ class TaskDetailActivity : AppCompatActivity() {
         spinnerCompleteTasks.isEnabled = false
     }
 
-    /**
-     * Detecta se há alterações não salvas no formulário.
-     */
     private fun hasUnsavedChanges(): Boolean {
         val currentTitle = editTextTaskTitle.text.toString()
         val currentDescription = editTextTaskDescription.text.toString()
         val currentDueDate = editTextTaskDueDate.text.toString()
+
         val currentImportance = when (spinnerImportanceLevel.selectedItem.toString()) {
             getString(R.string.importance_high) -> ImportanceLevel.HIGH
-            getString(R.string.importance_medium) -> ImportanceLevel.MEDIUM
             getString(R.string.importance_light) -> ImportanceLevel.LIGHT
             else -> ImportanceLevel.MEDIUM
         }
-        val currentState = when(spinnerCompleteTasks.selectedItem.toString()){
-            getString(R.string.status_incomplete) -> TaskStatus.ACTIVE
+
+        val currentState = when (spinnerCompleteTasks.selectedItem.toString()) {
             getString(R.string.status_complete) -> TaskStatus.COMPLETED
             else -> TaskStatus.ACTIVE
         }
@@ -507,14 +476,11 @@ class TaskDetailActivity : AppCompatActivity() {
                 currentState != originalState
     }
 
-    /**
-     * Mostra diálogo de confirmação ao tentar sair com alterações não salvas.
-     */
     private fun tryExitWithConfirmation() {
         if (hasUnsavedChanges()) {
             AlertDialog.Builder(this)
                 .setTitle("Descartar alterações?")
-                .setMessage("Você tem alterações não salvas. Deseja realmente sair?")
+                .setMessage("Há alterações não salvas. Deseja realmente sair?")
                 .setPositiveButton("Sim") { _, _ -> finish() }
                 .setNegativeButton("Não", null)
                 .show()
@@ -523,29 +489,14 @@ class TaskDetailActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Lida com seleções de itens da Toolbar (neste caso, apenas o botão "voltar" - up).
-     * Agora usa confirmação ao sair.
-     */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            android.R.id.home -> {
-                tryExitWithConfirmation()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
+        if (item.itemId == android.R.id.home) {
+            tryExitWithConfirmation()
+            return true
         }
+        return super.onOptionsItemSelected(item)
     }
 
-    /**
-     * Sobrescreve o comportamento do botão físico de voltar para exibir um diálogo de confirmação
-     * caso haja alterações não salvas. Não chamamos super.onBackPressed() porque o fluxo de saída
-     * (finish) é controlado manualmente após a confirmação do usuário.
-     *
-     * @Suppress("MissingSuperCall") é usado para suprimir o aviso do Lint, pois nesse caso
-     * não queremos o comportamento padrão do sistema.
-     */
-    @Suppress("MissingSuperCall")
     override fun onBackPressed() {
         tryExitWithConfirmation()
     }
