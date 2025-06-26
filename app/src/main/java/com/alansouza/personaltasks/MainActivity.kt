@@ -28,7 +28,9 @@ import com.alansouza.personaltasks.data.AppDatabase
 import com.alansouza.personaltasks.data.TaskDao
 import com.alansouza.personaltasks.model.Task
 import androidx.core.content.edit
+import androidx.lifecycle.ViewModelProvider
 import com.alansouza.personaltasks.auth.LoginActivity
+import com.alansouza.personaltasks.viewmodel.TaskViewModel
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
@@ -50,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var taskDao: TaskDao
     private lateinit var toolbar: Toolbar
     private lateinit var textViewEmptyTasks: TextView // TextView para mostrar quando a lista está vazia
+    private lateinit var viewModel: TaskViewModel
 
     // Variáveis de estado
     private var selectedTaskForContextMenu: Task? = null // Armazena a tarefa selecionada para o menu de contexto
@@ -86,6 +89,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        viewModel = ViewModelProvider(this)[TaskViewModel::class.java]
 
         val auth = FirebaseAuth.getInstance()
         if (auth.currentUser == null) {
@@ -129,7 +134,22 @@ class MainActivity : AppCompatActivity() {
 
         Log.d("MainActivitySort", "onCreate: Ordem de classificação inicial é $currentSortMoreImportantFirst")
         // Carrega e observa as tarefas do banco de dados
-        loadAndObserveTasks()
+        setupTaskObservation()
+    }
+
+    private fun setupTaskObservation() {
+        viewModel.tasks.observe(this) { tasks ->
+            Log.d("MainActivity", "Dados atualizados: ${tasks.size} tarefas")
+
+            val isEmpty = tasks.isEmpty()
+            recyclerViewTasks.visibility = if (isEmpty) View.GONE else View.VISIBLE
+            textViewEmptyTasks.visibility = if (isEmpty) View.VISIBLE else View.GONE
+
+            taskAdapter.submitList(tasks)
+        }
+
+        // Carrega tarefas com preferência salva
+        loadSortPreference()
     }
 
     private fun createUserWithEmailAndPassword(email: String, password: String){
@@ -175,7 +195,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun loadSortPreference() {
         currentSortMoreImportantFirst = sharedPreferences.getBoolean(KEY_SORT_ORDER, true)
-        Log.d("MainActivitySort", "loadSortPreference: Preferência de ordenação carregada: $currentSortMoreImportantFirst")
+        viewModel.setSortOrder(currentSortMoreImportantFirst)
     }
 
     /**
@@ -224,17 +244,15 @@ class MainActivity : AppCompatActivity() {
      * Define a nova ordem de classificação, salva a preferência e recarrega as tarefas.
      * @param newSortOrderIsMoreImportantFirst True para "mais importante primeiro", false caso contrário.
      */
-    private fun setSortOrder(newSortOrderIsMoreImportantFirst: Boolean) {
-        Log.d("MainActivitySort", "setSortOrder: Tentando mudar para $newSortOrderIsMoreImportantFirst. Atual é $currentSortMoreImportantFirst")
-        if (currentSortMoreImportantFirst != newSortOrderIsMoreImportantFirst) {
-            currentSortMoreImportantFirst = newSortOrderIsMoreImportantFirst
+    private fun setSortOrder(newSortOrder: Boolean) {
+        if (currentSortMoreImportantFirst != newSortOrder) {
+            currentSortMoreImportantFirst = newSortOrder
             saveSortPreference(currentSortMoreImportantFirst)
-            loadAndObserveTasks()
+            viewModel.setSortOrder(newSortOrder)
             invalidateOptionsMenu()
-        } else {
-            Log.d("MainActivitySort", "setSortOrder: A ordem NÃO mudou. Nenhuma ação tomada.")
         }
     }
+
 
 
     // Métodos do Menu de Opções (Options Menu)
