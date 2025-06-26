@@ -89,9 +89,10 @@ class TaskAdapter : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallba
             }
             importanceIndicatorView.setBackgroundColor(importanceColor)
 
-            val taskStatusString = when (task.isChecked) {
-                TaskStatus.COMPLETE -> itemView.context.getString(R.string.status_complete)
-                TaskStatus.INCOMPLETED -> itemView.context.getString(R.string.status_incomplete)
+            val taskStatusString = when (task.status) {
+                TaskStatus.COMPLETED -> itemView.context.getString(R.string.status_complete)
+                TaskStatus.ACTIVE -> itemView.context.getString(R.string.status_incomplete)
+                TaskStatus.DELETED -> itemView.context.getString(R.string.status_deleted)
             }
             taskFinalizada.text = taskStatusString
 

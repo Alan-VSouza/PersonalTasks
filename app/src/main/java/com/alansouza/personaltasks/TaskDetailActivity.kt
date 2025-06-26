@@ -61,7 +61,7 @@ class TaskDetailActivity : AppCompatActivity() {
     private var originalDescription: String = ""
     private var originalDueDate: String = ""
     private var originalImportance: ImportanceLevel = ImportanceLevel.MEDIUM
-    private var originalState: TaskStatus = TaskStatus.INCOMPLETED
+    private var originalState: TaskStatus = TaskStatus.ACTIVE
 
     // Componentes de dados e estado da Activity
     private lateinit var taskDao: TaskDao                // Objeto de acesso aos dados das tarefas (Room DAO)
@@ -132,7 +132,7 @@ class TaskDetailActivity : AppCompatActivity() {
                 originalDescription = ""
                 originalDueDate = editTextTaskDueDate.text?.toString() ?: ""
                 originalImportance = ImportanceLevel.MEDIUM
-                originalState = TaskStatus.INCOMPLETED
+                originalState = TaskStatus.ACTIVE
             }
             MODE_EDIT -> { // Configuração para editar uma tarefa existente
                 supportActionBar?.title = getString(R.string.title_edit_task)
@@ -221,12 +221,15 @@ class TaskDetailActivity : AppCompatActivity() {
     }
 
     private fun setupTaskCompleted(){
-        val completedDisplay = TaskStatus.entries.map { status ->
-            when (status){
-                TaskStatus.INCOMPLETED -> getString(R.string.status_incomplete)
-                TaskStatus.COMPLETE -> getString(R.string.status_complete)
+        val completedDisplay = TaskStatus.entries
+            .filter { it != TaskStatus.DELETED }
+            .map { status ->
+                when (status) {
+                    TaskStatus.ACTIVE -> getString(R.string.status_incomplete)
+                    TaskStatus.COMPLETED -> getString(R.string.status_complete)
+                    TaskStatus.DELETED -> getString(R.string.status_deleted)
+                }
             }
-        }
         val adapter = ArrayAdapter(
             this,
             R.layout.spinner_item_dark,
@@ -236,10 +239,9 @@ class TaskDetailActivity : AppCompatActivity() {
         spinnerCompleteTasks.adapter = adapter
 
         if(currentMode == MODE_NEW){
-            spinnerCompleteTasks.setSelection(TaskStatus.entries.indexOf(TaskStatus.INCOMPLETED))
+            spinnerCompleteTasks.setSelection(TaskStatus.entries.indexOf(TaskStatus.ACTIVE))
         }
     }
-
 
     /**
      * Configura o Spinner para seleção do nível de importância da tarefa.
@@ -333,9 +335,9 @@ class TaskDetailActivity : AppCompatActivity() {
 
         val selectedTaskStatus = spinnerCompleteTasks.selectedItem.toString()
         val status = when(selectedTaskStatus) {
-            getString(R.string.status_incomplete) -> TaskStatus.INCOMPLETED
-            getString(R.string.status_complete) -> TaskStatus.COMPLETE
-            else -> TaskStatus.INCOMPLETED
+            getString(R.string.status_incomplete) -> TaskStatus.ACTIVE
+            getString(R.string.status_complete) -> TaskStatus.COMPLETED
+            else -> TaskStatus.ACTIVE
         }
 
         // Obtém o nível de importância selecionado no Spinner
@@ -353,7 +355,7 @@ class TaskDetailActivity : AppCompatActivity() {
                 description = description,
                 dueDate = dueDate,
                 importance = importance,
-                isChecked = status
+                status = status
             )
             lifecycleScope.launch {
                 taskDao.insertTaskOnDatabase(newTask)
@@ -370,8 +372,7 @@ class TaskDetailActivity : AppCompatActivity() {
                     title = title,
                     description = description,
                     dueDate = dueDate,
-                    importance = importance,
-                    isChecked = status
+                    importance = importance
                 )
                 lifecycleScope.launch {
                     taskDao.updateTaskOnDatabase(updatedTask)
@@ -442,8 +443,9 @@ class TaskDetailActivity : AppCompatActivity() {
                     editTextTaskDueDate.setText("")
                 }
 
-                val statusIndex = TaskStatus.entries.indexOf(taskFromDb.isChecked)
-                if(statusIndex >= 0){
+                val statusIndex = listOf(TaskStatus.ACTIVE, TaskStatus.COMPLETED)
+                    .indexOf(taskFromDb?.status ?: TaskStatus.ACTIVE)
+                if (statusIndex >= 0) {
                     spinnerCompleteTasks.setSelection(statusIndex)
                 }
 
@@ -456,7 +458,7 @@ class TaskDetailActivity : AppCompatActivity() {
                 originalDescription = taskFromDb.description
                 originalDueDate = taskFromDb.dueDate
                 originalImportance = taskFromDb.importance
-                originalState = taskFromDb.isChecked
+                originalState = taskFromDb.status
             } else {
                 Toast.makeText(this@TaskDetailActivity, "Tarefa não encontrada.", Toast.LENGTH_SHORT).show()
                 setResult(Activity.RESULT_CANCELED)
@@ -493,9 +495,9 @@ class TaskDetailActivity : AppCompatActivity() {
             else -> ImportanceLevel.MEDIUM
         }
         val currentState = when(spinnerCompleteTasks.selectedItem.toString()){
-            getString(R.string.status_incomplete) -> TaskStatus.INCOMPLETED
-            getString(R.string.status_complete) -> TaskStatus.COMPLETE
-            else -> TaskStatus.INCOMPLETED
+            getString(R.string.status_incomplete) -> TaskStatus.ACTIVE
+            getString(R.string.status_complete) -> TaskStatus.COMPLETED
+            else -> TaskStatus.ACTIVE
         }
 
         return currentTitle != originalTitle ||
