@@ -10,7 +10,9 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -26,7 +28,11 @@ import com.alansouza.personaltasks.data.AppDatabase
 import com.alansouza.personaltasks.data.TaskDao
 import com.alansouza.personaltasks.model.Task
 import androidx.core.content.edit
+import com.alansouza.personaltasks.auth.LoginActivity
 import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
 
 
 /**
@@ -37,6 +43,8 @@ import com.google.android.material.snackbar.Snackbar
 class MainActivity : AppCompatActivity() {
 
     // Views da UI
+
+    private lateinit var auth: FirebaseAuth
     private lateinit var recyclerViewTasks: RecyclerView
     private lateinit var taskAdapter: TaskAdapter
     private lateinit var taskDao: TaskDao
@@ -51,6 +59,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PREFS_NAME = "PersonalTasksPrefs" // Nome do arquivo de SharedPreferences
         private const val KEY_SORT_ORDER = "sortMoreImportantFirst" // Chave para salvar a preferência de ordenação
+        private var TAG = "EmailAndPassword"
         // Chaves para passar dados para TaskDetailActivity
         const val EXTRA_MODE = "MODE"
         const val EXTRA_TASK_ID = "TASK_ID"
@@ -77,6 +86,20 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        val auth = FirebaseAuth.getInstance()
+        if (auth.currentUser == null) {
+            startActivity(Intent(this, LoginActivity::class.java))
+            finishAffinity()
+            return
+        }
+
+        val buttonLogout = findViewById<Button>(R.id.buttonLogout)
+        buttonLogout.setOnClickListener {
+            FirebaseAuth.getInstance().signOut()
+            startActivity(Intent(this, LoginActivity::class.java))
+            finishAffinity()
+        }
 
         // Inicializa SharedPreferences e carrega a preferência de ordenação
         sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -107,6 +130,30 @@ class MainActivity : AppCompatActivity() {
         Log.d("MainActivitySort", "onCreate: Ordem de classificação inicial é $currentSortMoreImportantFirst")
         // Carrega e observa as tarefas do banco de dados
         loadAndObserveTasks()
+    }
+
+    private fun createUserWithEmailAndPassword(email: String, password: String){
+        auth.createUserWithEmailAndPassword(email,password).addOnCompleteListener {  task ->
+            if(task.isSuccessful){
+                Log.d(TAG, "createUserWithEmailAndPassword:Sucess")
+                val user = auth.currentUser
+            }else{
+                Log.w(TAG, "createUserWithEmailAndPassword:Failure", task.exception)
+                Toast.makeText(baseContext, "Authentication Failure", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun signInWithEmailAndPassword(email: String, password: String){
+        auth.signInWithEmailAndPassword(email,password).addOnCompleteListener { task ->
+            if(task.isSuccessful){
+                Log.d(TAG, "signInUserWithEmailAndPassword:Sucess")
+                val user = auth.currentUser
+            }else{
+                Log.w(TAG, "signInUserWithEmailAndPassword:Failure", task.exception)
+                Toast.makeText(baseContext, "Authentication Failure", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     /**
