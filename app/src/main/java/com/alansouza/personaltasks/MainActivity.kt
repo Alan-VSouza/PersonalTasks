@@ -17,24 +17,23 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.core.content.edit
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.alansouza.personaltasks.adapter.TaskAdapter
-import com.alansouza.personaltasks.data.AppDatabase
-import com.alansouza.personaltasks.data.TaskDao
-import com.alansouza.personaltasks.model.Task
-import androidx.core.content.edit
-import androidx.lifecycle.ViewModelProvider
 import com.alansouza.personaltasks.auth.LoginActivity
-import com.alansouza.personaltasks.viewmodel.TaskViewModel
+import com.alansouza.personaltasks.model.Task
+import com.alansouza.personaltasks.model.TaskStatus
 import com.google.android.material.snackbar.Snackbar
-import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.auth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
 
 /**
@@ -49,7 +48,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var recyclerViewTasks: RecyclerView
     private lateinit var taskAdapter: TaskAdapter
-    private lateinit var taskDao: TaskDao
     private lateinit var toolbar: Toolbar
     private lateinit var textViewEmptyTasks: TextView // TextView para mostrar quando a lista está vazia
     private lateinit var viewModel: TaskViewModel
@@ -125,7 +123,10 @@ class MainActivity : AppCompatActivity() {
 
         // Inicializa as Views
         textViewEmptyTasks = findViewById(R.id.textViewEmptyTasks)
-        taskDao = AppDatabase.getDatabase(applicationContext).taskDao()
+        viewModel.activeTasks.observe(this) { tasks ->
+            taskAdapter.submitList(tasks)
+        }
+        loadSortPreference()
 
         recyclerViewTasks = findViewById(R.id.recyclerViewTasks)
         recyclerViewTasks.layoutManager = LinearLayoutManager(this)
@@ -137,19 +138,48 @@ class MainActivity : AppCompatActivity() {
         setupTaskObservation()
     }
 
+    fun navigateToDeletedTasks() {
+        startActivity(Intent(this, DeletedTasksActivity::class.java))
+    }
+
     private fun setupTaskObservation() {
-        viewModel.tasks.observe(this) { tasks ->
-            Log.d("MainActivity", "Dados atualizados: ${tasks.size} tarefas")
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            FirebaseDatabase.getInstance().getReference("tasks/$userId")
+                .orderByChild("status")
+                .equalTo(TaskStatus.ACTIVE.name)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        val tasks = mutableListOf<Task>()
 
-            val isEmpty = tasks.isEmpty()
-            recyclerViewTasks.visibility = if (isEmpty) View.GONE else View.VISIBLE
-            textViewEmptyTasks.visibility = if (isEmpty) View.VISIBLE else View.GONE
+                        snapshot.children.forEach { taskSnapshot ->
+                            val task = taskSnapshot.getValue(Task::class.java)?.copy(
+                                id = taskSnapshot.key ?: ""
+                            )
+                            task?.let { tasks.add(it) }
+                        }
 
-            taskAdapter.submitList(tasks)
+                        updateTaskList(tasks)
+                    }
+
+                    override fun onCancelled(error: DatabaseError) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Erro: ${error.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                })
         }
+    }
 
-        // Carrega tarefas com preferência salva
-        loadSortPreference()
+    private fun updateTaskList(tasks: List<Task>) {
+        val isEmpty = tasks.isEmpty()
+
+        recyclerViewTasks.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        textViewEmptyTasks.visibility = if (isEmpty) View.VISIBLE else View.GONE
+
+        taskAdapter.submitList(tasks)
     }
 
     private fun createUserWithEmailAndPassword(email: String, password: String){
@@ -205,39 +235,6 @@ class MainActivity : AppCompatActivity() {
     private fun saveSortPreference(isMoreImportantFirst: Boolean) {
         sharedPreferences.edit { putBoolean(KEY_SORT_ORDER, isMoreImportantFirst) }
         Log.d("MainActivitySort", "saveSortPreference: Preferência de ordenação salva: $isMoreImportantFirst")
-    }
-
-    /**
-     * Carrega as tarefas do banco de dados com a ordenação atual e configura um Observer
-     * para atualizar a UI quando os dados mudarem.
-     */
-    private fun loadAndObserveTasks() {
-        Log.d("MainActivitySort", "loadAndObserveTasks: Usando ordenação $currentSortMoreImportantFirst")
-        // Remove observadores antigos para evitar duplicações se este metodo for chamado múltiplas vezes
-        tasksLiveData?.removeObservers(this)
-
-        // Obtém o LiveData do DAO com a preferência de ordenação atual
-        tasksLiveData = taskDao.getAllTasksOrdered(currentSortMoreImportantFirst)
-        // Observa o LiveData
-        tasksLiveData?.observe(this, Observer { tasks ->
-            Log.d("MainActivitySort", "Observer recebeu ${tasks?.size ?: "nenhuma"} tarefa(s).")
-            // Log dos primeiros itens para depuração da ordenação
-            if (tasks != null && tasks.isNotEmpty()) {
-                Log.d("MainActivitySort", "Observer: Preferência de ordenação no escopo do observer: $currentSortMoreImportantFirst")
-                Log.d("MainActivitySort", "Observer: Primeiras 3 tarefas recebidas (ou menos):")
-                tasks.take(3).forEachIndexed { index, task ->
-                    Log.d("MainActivitySort", "  Tarefa[$index]: ${task.title}, Importância: ${task.importance}, Data: ${task.dueDate}")
-                }
-            }
-
-            val isEmpty = tasks.isNullOrEmpty()
-            // Mostra/esconde o RecyclerView e a mensagem de lista vazia
-            recyclerViewTasks.visibility = if (isEmpty) View.GONE else View.VISIBLE
-            textViewEmptyTasks.visibility = if (isEmpty) View.VISIBLE else View.GONE
-
-            // Atualiza o adapter com a nova lista de tarefas (ou uma lista vazia)
-            taskAdapter.submitList(tasks ?: emptyList())
-        })
     }
 
     /**
@@ -297,6 +294,10 @@ class MainActivity : AppCompatActivity() {
                 setSortOrder(false)
                 true
             }
+            R.id.menu_deleted_tasks -> {
+                navigateToDeletedTasks()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -339,26 +340,39 @@ class MainActivity : AppCompatActivity() {
         selectedTaskForContextMenu = task
     }
 
+    private fun deleteTaskInFirebase(task: Task) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            val taskRef = FirebaseDatabase.getInstance()
+                .getReference("tasks/$userId/${task.id}/status")
+            taskRef.setValue("DELETED")
+                .addOnSuccessListener {
+                    Toast.makeText(this, "Tarefa movida para excluídas", Toast.LENGTH_SHORT).show()
+                }
+                .addOnFailureListener {
+                    Toast.makeText(this, "Erro ao excluir tarefa", Toast.LENGTH_SHORT).show()
+                }
+        }
+    }
+
     /**
      * Exibe um diálogo de confirmação antes de prosseguir para a tela de confirmação de exclusão.
      * @param task A tarefa que pode ser excluída.
      */
     private fun showDeleteConfirmationDialog(task: Task) {
         AlertDialog.Builder(this)
-            .setTitle(getString(R.string.delete_task_title))
-            .setMessage(getString(R.string.delete_task_confirmation_message, task.title))
-            .setPositiveButton(getString(R.string.delete)) { _, _ ->
-                // Se confirmado, abre a TaskDetailActivity no modo de confirmação de exclusão
-                openTaskDetailScreen(TaskDetailActivity.MODE_DELETE_CONFIRM, task)
+            .setTitle("Excluir Tarefa")
+            .setMessage("Deseja mover '${task.title}' para tarefas excluídas?")
+            .setPositiveButton("Excluir") { _, _ ->
+                markTaskAsDeleted(task)
             }
-            .setNegativeButton(getString(R.string.cancel)) { _, _ ->
-                // Se cancelado, limpa a tarefa selecionada
-                selectedTaskForContextMenu = null
-            }
-            .setOnDismissListener {
-                selectedTaskForContextMenu = null
-            }
+            .setNegativeButton("Cancelar", null)
             .show()
+    }
+
+
+    private fun markTaskAsDeleted(task: Task) {
+        viewModel.updateTaskStatus(task.id, TaskStatus.DELETED)
     }
 
     /**

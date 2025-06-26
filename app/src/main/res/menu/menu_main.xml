@@ -7,6 +7,10 @@
         android:title="@string/action_new_task"
         app:showAsAction="ifRoom" />
 
+    <item
+        android:id="@+id/menu_deleted_tasks"
+        android:title="Tarefas Excluídas"
+        app:showAsAction="never"/>
 
     <item
         android:id="@+id/action_sort_by_importance_group"
