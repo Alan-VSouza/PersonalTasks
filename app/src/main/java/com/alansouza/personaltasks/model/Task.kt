@@ -22,5 +22,5 @@ data class Task(
     var description: String,
     var dueDate: String, // Data como String, formato "dd/MM/yyyy"
     var importance: ImportanceLevel = ImportanceLevel.MEDIUM, // Nível de importância padrão
-    var isChecked: TaskStatus = TaskStatus.INCOMPLETED
+    var status: TaskStatus = TaskStatus.ACTIVE
 ) : Serializable // Permite que objetos Task sejam passados em Intents

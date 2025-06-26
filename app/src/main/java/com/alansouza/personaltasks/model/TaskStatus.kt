@@ -1,6 +1,7 @@
 package com.alansouza.personaltasks.model
 
 enum class TaskStatus {
-    COMPLETE,
-    INCOMPLETED
+    ACTIVE,
+    COMPLETED,
+    DELETED
 }
