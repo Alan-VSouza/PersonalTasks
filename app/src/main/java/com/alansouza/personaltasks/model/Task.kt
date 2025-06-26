@@ -1,26 +1,26 @@
 package com.alansouza.personaltasks.model
 
-import androidx.room.Entity
-import androidx.room.PrimaryKey
 import java.io.Serializable
 
 /**
  * Representa uma tarefa na aplicação.
- * É uma entidade Room (tabela "tasks") e é serializável para ser passada entre Activities.
+ * Modelo de dados usado para persistência no Firebase Realtime Database.
+ * A classe é serializável para ser passada entre Activities.
  *
- * @property id O identificador único da tarefa (chave primária, autogerada).
- * @property title O título da tarefa.
- * @property description A descrição detalhada da tarefa.
- * @property dueDate A data limite para a conclusão da tarefa (formato String "dd/MM/yyyy").
- * @property importance O nível de importância da tarefa (padrão: MÉDIA).
+ * @property id Identificador único da tarefa, gerado pelo Firebase (chave do nó).
+ * @property title Título da tarefa.
+ * @property description Descrição detalhada da tarefa.
+ * @property dueDate Data limite para a conclusão da tarefa (formato String "dd/MM/yyyy").
+ * @property importance Nível de importância da tarefa (padrão: MÉDIA).
+ * @property status Estado atual da tarefa (ativo, concluído, excluído).
  */
-@Entity(tableName = "tasks") // Define o nome da tabela no banco de dados
 data class Task(
-    @PrimaryKey(autoGenerate = true) // Define 'id' como chave primária autoincrementável
-    val id: Int = 0,
-    var title: String,
-    var description: String,
-    var dueDate: String, // Data como String, formato "dd/MM/yyyy"
-    var importance: ImportanceLevel = ImportanceLevel.MEDIUM, // Nível de importância padrão
+    var id: String = "",
+    var title: String = "",
+    var description: String = "",
+    var dueDate: String = "",
+    var importance: ImportanceLevel = ImportanceLevel.MEDIUM,
     var status: TaskStatus = TaskStatus.ACTIVE
-) : Serializable // Permite que objetos Task sejam passados em Intents
+) : Serializable {
+    constructor() : this("", "", "", "", ImportanceLevel.MEDIUM, TaskStatus.ACTIVE)
+}
