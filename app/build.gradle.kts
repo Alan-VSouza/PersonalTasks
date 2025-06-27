@@ -42,7 +42,7 @@ android {
 
 dependencies {
     implementation(platform(libs.firebase.bom))
-
+    implementation ("com.google.android.material:material:1.12.0")
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-database-ktx")
     implementation("com.google.firebase:firebase-analytics-ktx")
