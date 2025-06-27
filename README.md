@@ -42,7 +42,7 @@ PersonalTasks permite criar, visualizar, editar, concluir e excluir tarefas diá
 
 ## Video Exemplo
 
-https://youtu.be/gLL4KoyGocI
+[https://youtu.be/gLL4KoyGocI](https://youtu.be/xFnd6h0Tuuo)
 
 ## Screenshots
 
