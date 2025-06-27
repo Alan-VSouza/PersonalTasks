@@ -16,25 +16,41 @@ import com.alansouza.personaltasks.model.ImportanceLevel
 import com.alansouza.personaltasks.model.Task
 import com.alansouza.personaltasks.model.TaskStatus
 
+/**
+ * Adapter para exibição de tarefas na lista principal.
+ * Utiliza DiffUtil para otimizar atualizações.
+ *
+ * @param onCheckChanged Callback para mudanças no status da tarefa (concluída/ativa)
+ */
 class TaskAdapter(
     private val onCheckChanged: (Task, TaskStatus) -> Unit
 ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(TaskDiffCallback()) {
 
+    /**
+     * Cria novas views (invocado pelo layout manager)
+     */
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_task_layout, parent, false)
         return TaskViewHolder(view, onCheckChanged)
     }
 
+    /**
+     * Substitui o conteúdo das views (invocado pelo layout manager)
+     */
     override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
         val task = getItem(position)
         holder.bind(task)
     }
 
+    /**
+     * ViewHolder para cada item de tarefa
+     */
     inner class TaskViewHolder(
         itemView: View,
         private val onCheckChanged: (Task, TaskStatus) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
+        // Referências para elementos da UI
         private val titleTextView: TextView = itemView.findViewById(R.id.textViewTaskTitle)
         private val descriptionTextView: TextView = itemView.findViewById(R.id.textViewTaskDescription)
         private val dueDateTextView: TextView = itemView.findViewById(R.id.textViewTaskDueDate)
@@ -44,6 +60,7 @@ class TaskAdapter(
         private val checkbox: CheckBox = itemView.findViewById(R.id.checkboxTaskCompleted)
 
         init {
+            // Configura clique longo para abrir menu de contexto
             itemView.setOnLongClickListener {
                 val position = bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) {
@@ -54,18 +71,25 @@ class TaskAdapter(
             }
         }
 
+        /**
+         * Vincula dados da tarefa aos elementos da UI
+         */
         fun bind(task: Task) {
+            // Preenche dados básicos
             titleTextView.text = task.title
             descriptionTextView.text = task.description
 
+            // Oculta descrição se vazia
             if (task.description.isEmpty()) {
                 descriptionTextView.visibility = View.GONE
             } else {
                 descriptionTextView.visibility = View.VISIBLE
             }
 
+            // Formata data de vencimento
             dueDateTextView.text = itemView.context.getString(R.string.due_date_format, task.dueDate)
 
+            // Configura cor do indicador de importância
             val importanceColor = when (task.importance) {
                 ImportanceLevel.HIGH -> ContextCompat.getColor(itemView.context, R.color.importance_high_color)
                 ImportanceLevel.MEDIUM -> ContextCompat.getColor(itemView.context, R.color.importance_medium_color)
@@ -73,6 +97,7 @@ class TaskAdapter(
             }
             importanceIndicatorView.setBackgroundColor(importanceColor)
 
+            // Exibe status da tarefa
             val taskStatusString = when (task.status) {
                 TaskStatus.COMPLETED -> itemView.context.getString(R.string.status_complete)
                 TaskStatus.ACTIVE -> itemView.context.getString(R.string.status_incomplete)
@@ -80,6 +105,7 @@ class TaskAdapter(
             }
             taskFinalizada.text = taskStatusString
 
+            // Exibe texto de importância
             val importanceTextString = when (task.importance) {
                 ImportanceLevel.HIGH -> itemView.context.getString(R.string.importance_high)
                 ImportanceLevel.MEDIUM -> itemView.context.getString(R.string.importance_medium)
@@ -87,8 +113,8 @@ class TaskAdapter(
             }
             importanceTextView.text = importanceTextString
 
-            // Configuração da Checkbox
-            checkbox.setOnCheckedChangeListener(null)
+            // Configura checkbox de conclusão
+            checkbox.setOnCheckedChangeListener(null) // Remove listener temporário
             checkbox.isChecked = task.status == TaskStatus.COMPLETED
             checkbox.setOnCheckedChangeListener { _, isChecked ->
                 val newStatus = if (isChecked) TaskStatus.COMPLETED else TaskStatus.ACTIVE
@@ -96,10 +122,14 @@ class TaskAdapter(
             }
         }
 
+        /**
+         * Exibe menu de contexto para ações na tarefa
+         */
         private fun showPopupMenu(view: View, task: Task) {
             val popupMenu = PopupMenu(view.context, view)
             popupMenu.inflate(R.menu.context_menu_task)
             popupMenu.setOnMenuItemClickListener { menuItem ->
+                // Delega ação para a MainActivity
                 val activity = view.context as? MainActivity
                 if (activity != null) {
                     activity.setSelectedTaskForContextMenu(task)
@@ -108,6 +138,7 @@ class TaskAdapter(
                 true
             }
 
+            // Força exibição de ícones (hack para versões antigas)
             try {
                 val fieldMPopup = PopupMenu::class.java.getDeclaredField("mPopup")
                 fieldMPopup.isAccessible = true
@@ -116,11 +147,15 @@ class TaskAdapter(
                     .getDeclaredMethod("setForceShowIcon", Boolean::class.java)
                     .invoke(mPopup, true)
             } catch (e: Exception) {
+                // Ignora falhas em versões mais recentes
             }
             popupMenu.show()
         }
     }
 
+    /**
+     * Callback para cálculo de diferenças entre listas
+     */
     class TaskDiffCallback : DiffUtil.ItemCallback<Task>() {
         override fun areItemsTheSame(oldItem: Task, newItem: Task): Boolean {
             return oldItem.id == newItem.id
