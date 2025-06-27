@@ -46,32 +46,29 @@ https://youtu.be/gLL4KoyGocI
 
 ## Screenshots
 
-**Tela Principal (Sem tarefas)**  
-![Lista de Tarefas Vazia](./readme_assets/principal_sem_tasks.png)
+**Tela Login**  
+![Login](./readme_assets/Screenshot_103.png)
 
-**Tela Principal (Com tarefas)**  
-![Lista de Tarefas](./readme_assets/com_tasks.png)
+**Tela Register**  
+![Registro](./readme_assets/Screenshot_104.png)
+
+**Tela Principal**  
+![Lista de Tarefas](./readme_assets/Screenshot_105.png)
 
 **Adicionar Nova Tarefa**  
-![Adicionar Nova Tarefa](./readme_assets/nova_task.png)
+![Adicionar Nova Tarefa](./readme_assets/Screenshot_106.png)
 
 **Ordenar Tarefas**  
-![Ordenar Tarefas](./readme_assets/ordenar_importancia.png)
+![Ordenar Tarefas](./readme_assets/Screenshot_107.png)
 
-**Menu de Ações (Context Menu)**  
-![Menu de Ações](./readme_assets/pop_acoes.png)
+**Tarefas Excluidas**  
+![Tela_Tarefa_Excluida](./readme_assets/Screenshot_108.png)
 
-**Detalhes de Tarefa**  
-![Detalhes de Tarefa](./readme_assets/detalhes_tasks.png)
+**Tarefa Adicionada**  
+![Lista_Com_Tarefas](./readme_assets/Screenshot_109.png)
 
-**Edição de Tarefa**  
-![Editar Tarefa](./readme_assets/editar_task.png)
-
-**Excluir Tarefa**  
-![Excluir Tarefa](./readme_assets/excluir_task.png)
-
-**Tela de Tarefas Excluídas**  
-![Tarefas Excluídas](./readme_assets/deleted_tasks.png)
+**Tela de Tarefas Excluídas (Com Task)**  
+![Tarefas Excluídas](./readme_assets/Screenshot_110.png)
 
 ## Instruções de Execução
 
