@@ -2,6 +2,7 @@ package com.alansouza.personaltasks
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
@@ -21,10 +22,19 @@ class DeletedTasksActivity : AppCompatActivity() {
         binding = ActivityDeletedTasksBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setSupportActionBar(binding.toolbarDeletedTasks)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.title = getString(R.string.deleted_tasks_title)
+
         viewModel = ViewModelProvider(this)[TaskViewModel::class.java]
 
         adapter = DeletedTasksAdapter { task, action ->
-            handleContextAction(task, action)
+            when (action) {
+                DeletedTasksAdapter.DeletedTaskAction.REACTIVATE ->
+                    viewModel.updateTaskStatus(task.id, TaskStatus.ACTIVE)
+                DeletedTasksAdapter.DeletedTaskAction.VIEW_DETAILS ->
+                    openTaskDetailScreen(task)
+            }
         }
 
         binding.recyclerViewDeletedTasks.apply {
@@ -35,6 +45,22 @@ class DeletedTasksActivity : AppCompatActivity() {
         viewModel.deletedTasks.observe(this) { tasks ->
             adapter.submitList(tasks)
         }
+    }
+
+    private fun openTaskDetailScreen(task: Task) {
+        val intent = Intent(this, TaskDetailActivity::class.java).apply {
+            putExtra("task", task)
+            putExtra(TaskDetailActivity.EXTRA_MODE, TaskDetailActivity.MODE_VIEW_DETAILS)
+        }
+        startActivity(intent)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        if (item.itemId == android.R.id.home) {
+            finish()
+            return true
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     private fun handleContextAction(task: Task, action: DeletedTasksAdapter.DeletedTaskAction) {
