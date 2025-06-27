@@ -1,3 +1,4 @@
+// Activity de Login com validação de email/senha e botões para cadastro.
 package com.alansouza.personaltasks.auth
 
 import android.content.Intent
@@ -26,24 +27,24 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
+        // Inicializa FirebaseAuth e referências das views
+        auth = FirebaseAuth.getInstance()
         emailInputLayout = findViewById(R.id.textInputLayoutEmail)
         passwordInputLayout = findViewById(R.id.textInputLayoutPassword)
-        auth = FirebaseAuth.getInstance()
         editTextEmail = findViewById(R.id.editTextEmail)
         editTextPassword = findViewById(R.id.editTextPassword)
         buttonLogin = findViewById(R.id.buttonLogin)
         buttonRegister = findViewById(R.id.buttonRegister)
         progressBar = findViewById(R.id.progressBar)
+
+        // Botão Entrar: valida campos e tenta login por email/senha
         buttonLogin.setOnClickListener {
             val email = editTextEmail.text.toString().trim()
             val password = editTextPassword.text.toString().trim()
-
-            // Limpa erros anteriores
             emailInputLayout.error = null
             passwordInputLayout.error = null
 
             var hasError = false
-
             if (email.isEmpty()) {
                 emailInputLayout.error = "Digite seu e-mail"
                 hasError = true
@@ -51,14 +52,13 @@ class LoginActivity : AppCompatActivity() {
                 emailInputLayout.error = "E-mail inválido"
                 hasError = true
             }
-
             if (password.isEmpty()) {
                 passwordInputLayout.error = "Digite sua senha"
                 hasError = true
             }
-
             if (hasError) return@setOnClickListener
 
+            // Exibe ProgressBar durante autenticação
             progressBar.visibility = View.VISIBLE
             buttonLogin.isEnabled = false
 
@@ -67,25 +67,27 @@ class LoginActivity : AppCompatActivity() {
                     progressBar.visibility = View.GONE
                     buttonLogin.isEnabled = true
                     if (task.isSuccessful) {
-                        Toast.makeText(this, "Login realizado com sucesso!", Toast.LENGTH_SHORT).show()
+                        // Navega para MainActivity em caso de sucesso
                         startActivity(Intent(this, MainActivity::class.java))
                         finishAffinity()
                     } else {
-                        val errorMsg = when (task.exception?.message) {
+                        // Mostra mensagem de erro personalizada
+                        val msg = when (task.exception?.message) {
                             "The password is invalid or the user does not have a password." ->
                                 "Senha incorreta. Tente novamente."
                             "There is no user record corresponding to this identifier. The user may have been deleted." ->
-                                "Usuário não encontrado. Verifique o e-mail digitado."
-                            "A network error (such as timeout, interrupted connection or unreachable host) has occurred." ->
+                                "Usuário não encontrado."
+                            "A network error (such as timeout...)" ->
                                 "Erro de conexão. Verifique sua internet."
-                            else -> "Erro ao fazer login. Verifique seus dados."
+                            else -> "Erro ao fazer login."
                         }
-                        passwordInputLayout.error = errorMsg
-                        Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show()
+                        passwordInputLayout.error = msg
+                        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
                     }
                 }
         }
 
+        // Botão Criar conta: abre RegisterActivity
         buttonRegister.setOnClickListener {
             startActivity(Intent(this, RegisterActivity::class.java))
         }
@@ -93,6 +95,7 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        // Se já estiver logado, vai direto para MainActivity
         if (auth.currentUser != null) {
             startActivity(Intent(this, MainActivity::class.java))
             finish()

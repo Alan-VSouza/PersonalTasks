@@ -1,14 +1,13 @@
+// Activity de registro de usuário, com validação de email, senha e confirmação.
 package com.alansouza.personaltasks.auth
 
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.alansouza.personaltasks.R
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.firebase.auth.FirebaseAuth
@@ -24,12 +23,13 @@ class RegisterActivity : AppCompatActivity() {
     private lateinit var editTextConfirmPassword: TextInputEditText
     private lateinit var buttonRegister: MaterialButton
     private lateinit var buttonBackToLogin: MaterialButton
-    private lateinit var progressBar: ProgressBar
+    private lateinit var progressBar: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_register)
 
+        // Inicializa FirebaseAuth e views
         auth = FirebaseAuth.getInstance()
         emailInputLayout = findViewById(R.id.textInputLayoutEmail)
         passwordInputLayout = findViewById(R.id.textInputLayoutPassword)
@@ -41,69 +41,63 @@ class RegisterActivity : AppCompatActivity() {
         buttonBackToLogin = findViewById(R.id.buttonBackToLogin)
         progressBar = findViewById(R.id.progressBar)
 
+        // Botão Criar conta: valida campos antes de registrar no Firebase
         buttonRegister.setOnClickListener {
-            // Limpa erros anteriores
             emailInputLayout.error = null
             passwordInputLayout.error = null
             confirmPasswordInputLayout.error = null
 
             val email = editTextEmail.text.toString().trim()
             val password = editTextPassword.text.toString().trim()
-            val confirmPassword = editTextConfirmPassword.text.toString().trim()
+            val confirmPwd = editTextConfirmPassword.text.toString().trim()
 
             var hasError = false
-
             if (email.isEmpty()) {
-                emailInputLayout.error = "Digite seu e-mail"
-                hasError = true
+                emailInputLayout.error = "Digite seu e-mail"; hasError = true
             } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                emailInputLayout.error = "E-mail inválido"
-                hasError = true
+                emailInputLayout.error = "E-mail inválido"; hasError = true
             }
-
             if (password.isEmpty()) {
-                passwordInputLayout.error = "Digite sua senha"
-                hasError = true
+                passwordInputLayout.error = "Digite sua senha"; hasError = true
             } else if (password.length < 6) {
-                passwordInputLayout.error = "A senha deve ter pelo menos 6 caracteres"
-                hasError = true
+                passwordInputLayout.error = "Senha deve ter ≥6 caracteres"; hasError = true
             }
-
-            if (confirmPassword.isEmpty()) {
-                confirmPasswordInputLayout.error = "Confirme sua senha"
-                hasError = true
-            } else if (password != confirmPassword) {
-                confirmPasswordInputLayout.error = "As senhas não coincidem"
-                hasError = true
+            if (confirmPwd.isEmpty()) {
+                confirmPasswordInputLayout.error = "Confirme sua senha"; hasError = true
+            } else if (password != confirmPwd) {
+                confirmPasswordInputLayout.error = "Senhas não coincidem"; hasError = true
             }
-
             if (hasError) return@setOnClickListener
 
             progressBar.visibility = View.VISIBLE
             buttonRegister.isEnabled = false
 
+            // Cria usuário no FirebaseAuth
             auth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this) { task ->
                     progressBar.visibility = View.GONE
                     buttonRegister.isEnabled = true
                     if (task.isSuccessful) {
-                        Toast.makeText(this, "Conta criada com sucesso! Faça login para continuar.", Toast.LENGTH_LONG).show()
+                        // Sucesso: vai para Login
+                        Toast.makeText(this, "Conta criada!", Toast.LENGTH_LONG).show()
                         startActivity(Intent(this, LoginActivity::class.java))
                         finishAffinity()
                     } else {
-                        val errorMsg = when {
-                            task.exception?.message?.contains("email address is already in use", ignoreCase = true) == true ->
-                                "Este e-mail já está cadastrado."
-                            task.exception?.message?.contains("badly formatted", ignoreCase = true) == true ->
+                        // Erros específicos
+                        val msg = when {
+                            task.exception?.message?.contains("already in use", true) == true ->
+                                "E-mail já cadastrado."
+                            task.exception?.message?.contains("badly formatted", true) == true ->
                                 "E-mail inválido."
-                            else -> "Erro ao criar conta. Tente novamente."
+                            else -> "Erro ao criar conta."
                         }
-                        emailInputLayout.error = errorMsg
-                        Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show()
+                        emailInputLayout.error = msg
+                        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
                     }
                 }
         }
 
+        // Botão voltar ao Login
         buttonBackToLogin.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
             finishAffinity()
