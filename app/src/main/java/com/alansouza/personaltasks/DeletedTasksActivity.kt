@@ -49,9 +49,6 @@ class DeletedTasksActivity : AppCompatActivity() {
         // Observa LiveData de tarefas excluídas
         viewModel.deletedTasks.observe(this) { tasks ->
             adapter.submitList(tasks)
-            if (tasks.isEmpty()) {
-                Toast.makeText(this, "Nenhuma tarefa excluída", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 

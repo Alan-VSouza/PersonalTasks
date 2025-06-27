@@ -7,10 +7,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.PopupMenu
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.alansouza.personaltasks.R
+import com.alansouza.personaltasks.model.ImportanceLevel
 import com.alansouza.personaltasks.model.Task
 
 class DeletedTasksAdapter(
@@ -31,6 +33,8 @@ class DeletedTasksAdapter(
         private val descriptionTextView: TextView = view.findViewById(R.id.textViewTaskDescription)
         private val dueDateTextView: TextView = view.findViewById(R.id.textViewTaskDueDate)
         private val statusTextView: TextView = view.findViewById(R.id.finalizado)
+        private val importanceTextView: TextView = itemView.findViewById(R.id.textViewImportanceText)
+        private val importanceIndicatorView: View = itemView.findViewById(R.id.viewImportanceIndicator)
 
         init {
             // Configura clique longo para exibir o menu de ações
@@ -54,6 +58,20 @@ class DeletedTasksAdapter(
             )
             // Exibe status como "Excluída"
             statusTextView.text = itemView.context.getString(R.string.status_deleted)
+
+            val color = when (task.importance) {
+                ImportanceLevel.HIGH   -> R.color.importance_high_color
+                ImportanceLevel.MEDIUM -> R.color.importance_medium_color
+                ImportanceLevel.LIGHT  -> R.color.importance_light_color
+            }
+            importanceIndicatorView.setBackgroundColor(ContextCompat.getColor(itemView.context, color))
+
+            val importanceText = when (task.importance) {
+                ImportanceLevel.HIGH   -> R.string.importance_high
+                ImportanceLevel.MEDIUM -> R.string.importance_medium
+                ImportanceLevel.LIGHT  -> R.string.importance_light
+            }
+            importanceTextView.text = itemView.context.getString(importanceText)
         }
 
         // Exibe um PopupMenu com opções "Reativar" e "Ver Detalhes"
