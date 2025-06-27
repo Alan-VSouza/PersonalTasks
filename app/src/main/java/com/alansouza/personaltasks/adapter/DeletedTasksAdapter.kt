@@ -10,7 +10,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.alansouza.personaltasks.R
 import com.alansouza.personaltasks.model.Task
-import com.alansouza.personaltasks.model.TaskStatus
 
 class DeletedTasksAdapter(
     private val onAction: (Task, DeletedTasksAdapter.DeletedTaskAction) -> Unit
@@ -27,19 +26,30 @@ class DeletedTasksAdapter(
         private val dueDateTextView: TextView = view.findViewById(R.id.textViewTaskDueDate)
         private val statusTextView: TextView = view.findViewById(R.id.finalizado)
 
+        init {
+            // Clique normal para ver detalhes
+            itemView.setOnClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    onAction(getItem(position), DeletedTaskAction.VIEW_DETAILS)
+                }
+            }
+
+            // Clique longo para menu de contexto
+            itemView.setOnLongClickListener {
+                val position = bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    showContextMenu(getItem(position))
+                }
+                true
+            }
+        }
+
         fun bind(task: Task) {
             titleTextView.text = task.title
             descriptionTextView.text = task.description
             dueDateTextView.text = itemView.context.getString(R.string.due_date_format, task.dueDate)
-            statusTextView.text = when (task.status) {
-                TaskStatus.DELETED -> itemView.context.getString(R.string.status_deleted)
-                else -> ""
-            }
-
-            itemView.setOnLongClickListener {
-                showContextMenu(task)
-                true
-            }
+            statusTextView.text = itemView.context.getString(R.string.status_deleted)
         }
 
         private fun showContextMenu(task: Task) {
