@@ -79,5 +79,6 @@
         vestibulum. Fusce dictum libero quis erat maximus, vitae volutpat diam dignissim.
     </string>
     <string name="status_deleted">Deletada</string>
+    <string name="deleted_tasks_title">Tarefas Excluídas</string>
 
 </resources>
