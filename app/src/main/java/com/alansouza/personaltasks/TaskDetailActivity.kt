@@ -89,6 +89,13 @@ class TaskDetailActivity : AppCompatActivity() {
         currentMode = intent.getStringExtra(EXTRA_MODE)
         currentTaskId = intent.getStringExtra(EXTRA_TASK_ID)
 
+        // Se não vier o ID, tente pegar o objeto Task direto (ex: vindo de um putExtra("task", task))
+        if (currentTaskId == null && intent.hasExtra("task")) {
+            val task = intent.getSerializableExtra("task") as? Task
+            currentTaskId = task?.id
+            currentTask = task
+        }
+
         // Configura UI conforme o modo
         setupUIForMode()
 
@@ -111,8 +118,11 @@ class TaskDetailActivity : AppCompatActivity() {
                 originalState = TaskStatus.ACTIVE
             }
             MODE_EDIT, MODE_VIEW_DETAILS, MODE_DELETE_CONFIRM -> {
-                if (currentTaskId != null) {
+                // Carrega detalhes se necessário
+                if (currentTask == null && currentTaskId != null) {
                     loadTaskDetails(currentTaskId!!)
+                } else if (currentTask != null) {
+                    preencherCampos(currentTask!!)
                 } else {
                     Toast.makeText(this, "ID da tarefa inválido", Toast.LENGTH_LONG).show()
                     finish()
@@ -122,6 +132,7 @@ class TaskDetailActivity : AppCompatActivity() {
                     MODE_EDIT -> {
                         supportActionBar?.title = getString(R.string.title_edit_task)
                         buttonSave.text = getString(R.string.button_save)
+                        buttonSave.visibility = View.VISIBLE
                     }
                     MODE_VIEW_DETAILS -> {
                         supportActionBar?.title = getString(R.string.title_task_details)
@@ -131,6 +142,7 @@ class TaskDetailActivity : AppCompatActivity() {
                     MODE_DELETE_CONFIRM -> {
                         supportActionBar?.title = getString(R.string.delete_task_title)
                         buttonSave.text = getString(R.string.delete)
+                        buttonSave.visibility = View.VISIBLE
                         disableEditing()
                     }
                 }
@@ -140,6 +152,30 @@ class TaskDetailActivity : AppCompatActivity() {
                 finish()
             }
         }
+    }
+
+    private fun preencherCampos(task: Task) {
+        editTextTaskTitle.setText(task.title)
+        editTextTaskDescription.setText(task.description)
+        editTextTaskDueDate.setText(task.dueDate)
+        spinnerImportanceLevel.setSelection(
+            when (task.importance) {
+                ImportanceLevel.HIGH -> 0
+                ImportanceLevel.LIGHT -> 2
+                else -> 1
+            }
+        )
+        spinnerCompleteTasks.setSelection(
+            when (task.status) {
+                TaskStatus.COMPLETED -> 1
+                else -> 0
+            }
+        )
+        originalTitle = task.title
+        originalDescription = task.description
+        originalDueDate = task.dueDate
+        originalImportance = task.importance
+        originalState = task.status
     }
 
     private fun setupDatePicker() {
@@ -224,12 +260,10 @@ class TaskDetailActivity : AppCompatActivity() {
     }
 
     private fun saveOrUpdateTask() {
-        // 1. Coletar dados
         val title = editTextTaskTitle.text.toString().trim()
         val description = editTextTaskDescription.text.toString().trim()
         val dueDate = editTextTaskDueDate.text.toString().trim()
 
-        // 2. Validação completa
         if (title.isEmpty()) {
             textFieldLayoutTitle.error = "Título obrigatório"
             return
@@ -246,12 +280,10 @@ class TaskDetailActivity : AppCompatActivity() {
             return
         }
 
-        // 3. Limpar erros
         textFieldLayoutTitle.error = null
         editTextTaskDescription.error = null
         textFieldLayoutDueDate.error = null
 
-        // 4. Obter status e importância
         val status = when (spinnerCompleteTasks.selectedItem.toString()) {
             getString(R.string.status_complete) -> TaskStatus.COMPLETED
             else -> TaskStatus.ACTIVE
@@ -263,7 +295,6 @@ class TaskDetailActivity : AppCompatActivity() {
             else -> ImportanceLevel.MEDIUM
         }
 
-        // 5. Verificar autenticação
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId == null) {
             Toast.makeText(this, "Usuário não autenticado", Toast.LENGTH_LONG).show()
@@ -275,7 +306,6 @@ class TaskDetailActivity : AppCompatActivity() {
 
         when (currentMode) {
             MODE_NEW -> {
-                // 6. Criar nova tarefa
                 val newTaskRef = tasksRef.push()
                 val newTask = Task(
                     id = newTaskRef.key ?: "",
@@ -288,9 +318,7 @@ class TaskDetailActivity : AppCompatActivity() {
 
                 newTaskRef.setValue(newTask)
                     .addOnSuccessListener {
-                        // 7. Feedback visual e encerramento
                         Toast.makeText(this, "Tarefa criada com sucesso!", Toast.LENGTH_SHORT).show()
-
                         val resultIntent = Intent().apply {
                             putExtra(EXTRA_MESSAGE_AFTER_OPERATION, "Tarefa criada com sucesso!")
                         }
@@ -303,7 +331,6 @@ class TaskDetailActivity : AppCompatActivity() {
             }
 
             MODE_EDIT -> {
-                // 8. Atualizar tarefa existente
                 currentTask?.let { task ->
                     val updatedTask = task.copy(
                         title = title,
@@ -316,7 +343,6 @@ class TaskDetailActivity : AppCompatActivity() {
                     tasksRef.child(task.id).setValue(updatedTask)
                         .addOnSuccessListener {
                             Toast.makeText(this, "Tarefa atualizada!", Toast.LENGTH_SHORT).show()
-
                             val resultIntent = Intent().apply {
                                 putExtra(EXTRA_MESSAGE_AFTER_OPERATION, "Tarefa atualizada!")
                             }
@@ -331,45 +357,6 @@ class TaskDetailActivity : AppCompatActivity() {
                 }
             }
         }
-    }
-
-
-    private fun validateFields(title: String, description: String, dueDate: String): Boolean {
-        var isValid = true
-
-        if (title.isEmpty()) {
-            textFieldLayoutTitle.error = "Título obrigatório"
-            isValid = false
-        } else if (title.length > 50) {
-            textFieldLayoutTitle.error = "Máximo 50 caracteres"
-            isValid = false
-        } else {
-            textFieldLayoutTitle.error = null
-        }
-
-        if (description.isEmpty()) {
-            Toast.makeText(this, "Descrição obrigatória", Toast.LENGTH_SHORT).show()
-            isValid = false
-        } else if (description.length > 250) {
-            Toast.makeText(this, "Máximo 250 caracteres", Toast.LENGTH_SHORT).show()
-            isValid = false
-        }
-
-        if (dueDate.isEmpty()) {
-            textFieldLayoutDueDate.error = "Data obrigatória"
-            isValid = false
-        } else {
-            textFieldLayoutDueDate.error = null
-        }
-
-        return isValid
-    }
-
-    private fun handleSuccess(message: String) {
-        setResult(Activity.RESULT_OK, Intent().apply {
-            putExtra(EXTRA_MESSAGE_AFTER_OPERATION, message)
-        })
-        finish()
     }
 
     private fun deleteTaskConfirmed() {
@@ -403,35 +390,7 @@ class TaskDetailActivity : AppCompatActivity() {
                         id = taskId
                     }
 
-                    currentTask?.let { task ->
-                        // Preenche UI
-                        editTextTaskTitle.setText(task.title)
-                        editTextTaskDescription.setText(task.description)
-                        editTextTaskDueDate.setText(task.dueDate)
-
-                        // Configura spinners
-                        spinnerImportanceLevel.setSelection(
-                            when (task.importance) {
-                                ImportanceLevel.HIGH -> 0
-                                ImportanceLevel.LIGHT -> 2
-                                else -> 1
-                            }
-                        )
-
-                        spinnerCompleteTasks.setSelection(
-                            when (task.status) {
-                                TaskStatus.COMPLETED -> 1
-                                else -> 0
-                            }
-                        )
-
-                        // Salva valores originais
-                        originalTitle = task.title
-                        originalDescription = task.description
-                        originalDueDate = task.dueDate
-                        originalImportance = task.importance
-                        originalState = task.status
-                    } ?: run {
+                    currentTask?.let { preencherCampos(it) } ?: run {
                         Toast.makeText(this, "Tarefa não encontrada", Toast.LENGTH_SHORT).show()
                         finish()
                     }
@@ -489,6 +448,13 @@ class TaskDetailActivity : AppCompatActivity() {
         }
     }
 
+    private fun handleSuccess(message: String) {
+        setResult(Activity.RESULT_OK, Intent().apply {
+            putExtra(EXTRA_MESSAGE_AFTER_OPERATION, message)
+        })
+        finish()
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
             tryExitWithConfirmation()
@@ -498,6 +464,10 @@ class TaskDetailActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        tryExitWithConfirmation()
+        if (!hasUnsavedChanges()) {
+            super.onBackPressed()
+        } else {
+            tryExitWithConfirmation()
+        }
     }
 }
