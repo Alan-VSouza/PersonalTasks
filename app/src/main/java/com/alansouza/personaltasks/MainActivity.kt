@@ -6,11 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
@@ -26,6 +27,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.alansouza.personaltasks.adapter.TaskAdapter
 import com.alansouza.personaltasks.auth.LoginActivity
+import com.alansouza.personaltasks.databinding.ActivityMainBinding
 import com.alansouza.personaltasks.model.Task
 import com.alansouza.personaltasks.model.TaskStatus
 import com.google.android.material.snackbar.Snackbar
@@ -45,6 +47,7 @@ class MainActivity : AppCompatActivity() {
 
     // Views da UI
 
+    private lateinit var binding: ActivityMainBinding
     private lateinit var auth: FirebaseAuth
     private lateinit var recyclerViewTasks: RecyclerView
     private lateinit var taskAdapter: TaskAdapter
@@ -86,7 +89,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         viewModel = ViewModelProvider(this)[TaskViewModel::class.java]
 
@@ -97,8 +101,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        val buttonLogout = findViewById<Button>(R.id.buttonLogout)
-        buttonLogout.setOnClickListener {
+        binding.buttonLogout.setOnClickListener {
             FirebaseAuth.getInstance().signOut()
             startActivity(Intent(this, LoginActivity::class.java))
             finishAffinity()
@@ -108,35 +111,44 @@ class MainActivity : AppCompatActivity() {
         sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         loadSortPreference()
 
-        toolbar = findViewById(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        // Desabilita o título padrão da ActionBar, pois usamos um TextView customizado no layout da Toolbar
+        // Configura a Toolbar
+        setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
 
-        // Ajusta o padding da tela para acomodar as barras do sistema (status bar, navigation bar)
-        val rootLayout = findViewById<View>(R.id.main_container)
-        ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { v, insets ->
+        // Configura insets para barras do sistema
+        ViewCompat.setOnApplyWindowInsetsListener(binding.mainContainer) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(v.paddingLeft, systemBars.top, v.paddingRight, v.paddingBottom)
             insets
         }
 
-        // Inicializa as Views
-        textViewEmptyTasks = findViewById(R.id.textViewEmptyTasks)
-        viewModel.activeTasks.observe(this) { tasks ->
-            taskAdapter.submitList(tasks)
-        }
-        loadSortPreference()
+        // Configura campo de busca
+        binding.searchField.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                viewModel.setSearchQuery(s.toString())
+            }
+            override fun beforeTextChanged(s: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+            override fun onTextChanged(s: CharSequence?, p1: Int, p2: Int, p3: Int) {}
+        })
 
-        recyclerViewTasks = findViewById(R.id.recyclerViewTasks)
-        recyclerViewTasks.layoutManager = LinearLayoutManager(this)
+        // Observa tarefas filtradas
+        viewModel.filteredActiveTasks.observe(this) { tasks ->
+            taskAdapter.submitList(tasks)
+            binding.textViewEmptyTasks.visibility = if (tasks.isEmpty()) View.VISIBLE else View.GONE
+        }
+
+        // Configura RecyclerView e Adapter
         taskAdapter = TaskAdapter { task, newStatus ->
             viewModel.updateTaskStatus(task.id, newStatus)
         }
-        recyclerViewTasks.adapter = taskAdapter
+        binding.recyclerViewTasks.layoutManager = LinearLayoutManager(this)
+        binding.recyclerViewTasks.adapter = taskAdapter
 
+        // Carrega preferência de ordenação
+        loadSortPreference()
         Log.d("MainActivitySort", "onCreate: Ordem de classificação inicial é $currentSortMoreImportantFirst")
-        // Carrega e observa as tarefas do banco de dados
+
+        // Configura observação das tarefas
         setupTaskObservation()
     }
 
@@ -174,12 +186,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun updateTaskList(tasks: List<Task>) {
-        val isEmpty = tasks.isEmpty()
-
-        recyclerViewTasks.visibility = if (isEmpty) View.GONE else View.VISIBLE
-        textViewEmptyTasks.visibility = if (isEmpty) View.VISIBLE else View.GONE
-
         taskAdapter.submitList(tasks)
+        binding.textViewEmptyTasks.visibility = if (tasks.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun createUserWithEmailAndPassword(email: String, password: String){

@@ -27,14 +27,6 @@ class DeletedTasksAdapter(
         private val statusTextView: TextView = view.findViewById(R.id.finalizado)
 
         init {
-            // Clique normal para ver detalhes
-            itemView.setOnClickListener {
-                val position = bindingAdapterPosition
-                if (position != RecyclerView.NO_POSITION) {
-                    onAction(getItem(position), DeletedTaskAction.VIEW_DETAILS)
-                }
-            }
-
             // Clique longo para menu de contexto
             itemView.setOnLongClickListener {
                 val position = bindingAdapterPosition
