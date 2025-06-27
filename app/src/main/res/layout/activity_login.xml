@@ -47,7 +47,9 @@
                 android:gravity="center"
                 android:layout_marginBottom="24dp"/>
 
+            <!-- Campo de email com id para exibir erro -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayoutEmail"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Email"
@@ -57,13 +59,15 @@
                     android:id="@+id/editTextEmail"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:autofillHints="emailAddress"
                     android:background="#4174FBD5"
                     android:backgroundTint="#020202"
+                    android:autofillHints="emailAddress"
                     android:inputType="textEmailAddress" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Campo de senha com id para exibir erro -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayoutPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Senha"
@@ -74,9 +78,9 @@
                     android:id="@+id/editTextPassword"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:autofillHints="password"
                     android:background="#4174FBD5"
                     android:backgroundTint="#020202"
+                    android:autofillHints="password"
                     android:inputType="textPassword" />
             </com.google.android.material.textfield.TextInputLayout>
 

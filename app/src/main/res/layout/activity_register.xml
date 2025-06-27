@@ -47,8 +47,9 @@
                 android:gravity="center"
                 android:layout_marginBottom="24dp"/>
 
-            <!-- Campo de email com label arredondado -->
+            <!-- Campo de email -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayoutEmail"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Email"
@@ -57,8 +58,7 @@
                 app:boxCornerRadiusTopEnd="18dp"
                 app:boxCornerRadiusBottomStart="18dp"
                 app:boxCornerRadiusBottomEnd="18dp"
-                android:background="#4174FBD5"
-                android:backgroundTint="#020202"
+                app:boxBackgroundColor="@android:color/white"
                 app:boxStrokeColor="?attr/colorPrimary"
                 app:hintTextColor="@color/md_theme_dark_primary">
 
@@ -66,12 +66,15 @@
                     android:id="@+id/editTextEmail"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="#4174FBD5"
+                    android:backgroundTint="#020202"
                     android:inputType="textEmailAddress"
                     android:autofillHints="emailAddress"/>
             </com.google.android.material.textfield.TextInputLayout>
 
-            <!-- Campo de senha com label arredondado -->
+            <!-- Campo de senha -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayoutPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Senha"
@@ -81,8 +84,7 @@
                 app:boxCornerRadiusTopEnd="18dp"
                 app:boxCornerRadiusBottomStart="18dp"
                 app:boxCornerRadiusBottomEnd="18dp"
-                android:background="#4174FBD5"
-                android:backgroundTint="#020202"
+                app:boxBackgroundColor="@android:color/white"
                 app:boxStrokeColor="?attr/colorPrimary"
                 app:hintTextColor="@color/md_theme_dark_primary">
 
@@ -90,12 +92,15 @@
                     android:id="@+id/editTextPassword"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="#4174FBD5"
+                    android:backgroundTint="#020202"
                     android:inputType="textPassword"
                     android:autofillHints="password"/>
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Campo de confirmação de senha -->
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/textInputLayoutConfirmPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Confirmar senha"
@@ -105,14 +110,15 @@
                 app:boxCornerRadiusTopEnd="18dp"
                 app:boxCornerRadiusBottomStart="18dp"
                 app:boxCornerRadiusBottomEnd="18dp"
-                android:background="#4174FBD5"
-                android:backgroundTint="#020202"
+                app:boxBackgroundColor="@android:color/white"
                 app:boxStrokeColor="?attr/colorPrimary"
                 app:hintTextColor="@color/md_theme_dark_primary">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/editTextConfirmPassword"
                     android:layout_width="match_parent"
+                    android:background="#4174FBD5"
+                    android:backgroundTint="#020202"
                     android:layout_height="wrap_content"
                     android:inputType="textPassword"/>
             </com.google.android.material.textfield.TextInputLayout>

@@ -19,11 +19,15 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var buttonLogin: Button
     private lateinit var buttonRegister: Button
     private lateinit var progressBar: ProgressBar
+    private lateinit var emailInputLayout: com.google.android.material.textfield.TextInputLayout
+    private lateinit var passwordInputLayout: com.google.android.material.textfield.TextInputLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
 
+        emailInputLayout = findViewById(R.id.textInputLayoutEmail)
+        passwordInputLayout = findViewById(R.id.textInputLayoutPassword)
         auth = FirebaseAuth.getInstance()
         editTextEmail = findViewById(R.id.editTextEmail)
         editTextPassword = findViewById(R.id.editTextPassword)
@@ -33,23 +37,53 @@ class LoginActivity : AppCompatActivity() {
         buttonLogin.setOnClickListener {
             val email = editTextEmail.text.toString().trim()
             val password = editTextPassword.text.toString().trim()
-            if (email.isNotEmpty() && password.isNotEmpty()) {
-                progressBar.visibility = View.VISIBLE
-                buttonLogin.isEnabled = false
-                auth.signInWithEmailAndPassword(email, password)
-                    .addOnCompleteListener(this) { task ->
-                        progressBar.visibility = View.GONE
-                        buttonLogin.isEnabled = true
-                        if (task.isSuccessful) {
-                            startActivity(Intent(this, MainActivity::class.java))
-                            finishAffinity()
-                        } else {
-                            Toast.makeText(this, "Erro: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-            } else {
-                Toast.makeText(this, "Preencha todos os campos", Toast.LENGTH_SHORT).show()
+
+            // Limpa erros anteriores
+            emailInputLayout.error = null
+            passwordInputLayout.error = null
+
+            var hasError = false
+
+            if (email.isEmpty()) {
+                emailInputLayout.error = "Digite seu e-mail"
+                hasError = true
+            } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                emailInputLayout.error = "E-mail inválido"
+                hasError = true
             }
+
+            if (password.isEmpty()) {
+                passwordInputLayout.error = "Digite sua senha"
+                hasError = true
+            }
+
+            if (hasError) return@setOnClickListener
+
+            progressBar.visibility = View.VISIBLE
+            buttonLogin.isEnabled = false
+
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this) { task ->
+                    progressBar.visibility = View.GONE
+                    buttonLogin.isEnabled = true
+                    if (task.isSuccessful) {
+                        Toast.makeText(this, "Login realizado com sucesso!", Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this, MainActivity::class.java))
+                        finishAffinity()
+                    } else {
+                        val errorMsg = when (task.exception?.message) {
+                            "The password is invalid or the user does not have a password." ->
+                                "Senha incorreta. Tente novamente."
+                            "There is no user record corresponding to this identifier. The user may have been deleted." ->
+                                "Usuário não encontrado. Verifique o e-mail digitado."
+                            "A network error (such as timeout, interrupted connection or unreachable host) has occurred." ->
+                                "Erro de conexão. Verifique sua internet."
+                            else -> "Erro ao fazer login. Verifique seus dados."
+                        }
+                        passwordInputLayout.error = errorMsg
+                        Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show()
+                    }
+                }
         }
 
         buttonRegister.setOnClickListener {
