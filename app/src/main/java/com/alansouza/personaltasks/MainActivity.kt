@@ -130,7 +130,9 @@ class MainActivity : AppCompatActivity() {
 
         recyclerViewTasks = findViewById(R.id.recyclerViewTasks)
         recyclerViewTasks.layoutManager = LinearLayoutManager(this)
-        taskAdapter = TaskAdapter()
+        taskAdapter = TaskAdapter { task, newStatus ->
+            viewModel.updateTaskStatus(task.id, newStatus)
+        }
         recyclerViewTasks.adapter = taskAdapter
 
         Log.d("MainActivitySort", "onCreate: Ordem de classificação inicial é $currentSortMoreImportantFirst")
@@ -146,19 +148,17 @@ class MainActivity : AppCompatActivity() {
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
             FirebaseDatabase.getInstance().getReference("tasks/$userId")
-                .orderByChild("status")
-                .equalTo(TaskStatus.ACTIVE.name)
                 .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         val tasks = mutableListOf<Task>()
-
                         snapshot.children.forEach { taskSnapshot ->
-                            val task = taskSnapshot.getValue(Task::class.java)?.copy(
+                            val task = taskSnapshot.getValue(Task::class.java)?.apply {
                                 id = taskSnapshot.key ?: ""
-                            )
-                            task?.let { tasks.add(it) }
+                            }
+                            if (task?.status == TaskStatus.ACTIVE || task?.status == TaskStatus.COMPLETED) {
+                                tasks.add(task)
+                            }
                         }
-
                         updateTaskList(tasks)
                     }
 
