@@ -36,9 +36,9 @@ class TaskViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateTaskStatus(taskId: String, newStatus: TaskStatus) {
         when (newStatus) {
-            TaskStatus.DELETED -> repository.softDeleteTask(taskId)
-            TaskStatus.ACTIVE -> repository.reactivateTask(taskId)
             TaskStatus.COMPLETED -> repository.markTaskAsCompleted(taskId)
+            TaskStatus.ACTIVE -> repository.reactivateTask(taskId)
+            TaskStatus.DELETED -> repository.softDeleteTask(taskId)
         }
     }
 
