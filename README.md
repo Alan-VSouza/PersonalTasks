@@ -1,122 +1,122 @@
 # PersonalTasks
 
-Aplicativo Android para gerenciamento de tarefas pessoais com autenticação e persistência remota via Firebase.
+An Android app to manage personal tasks, with authentication and remote persistence through Firebase.
 
-**Autor:** Alan Souza  
+**Author:** Alan Souza  
 **Email:** alansouzeesi@gmail.com
 
-## Descrição
+## Description
 
-PersonalTasks permite criar, visualizar, editar, concluir e excluir tarefas diárias, com sincronização em tempo real via Firebase Realtime Database e suporte offline nativo. Além da lista principal de tarefas, inclui um histórico de tarefas excluídas, permitindo reativá-las ou revisar detalhes em modo somente leitura.
+PersonalTasks lets you create, view, edit, complete and delete daily tasks, with real-time sync through Firebase Realtime Database and built-in offline support. Besides the main task list, it has a deleted-tasks history where you can reactivate tasks or review their details in read-only mode.
 
-## Funcionalidades
+## Features
 
-- **Autenticação Firebase**  
-  Login e logout de usuários via Firebase Authentication.
+**Firebase authentication:** sign in and sign out with Firebase Authentication.
 
-- **Lista Principal de Tarefas**
-    - Exibe tarefas com status **Ativo** ou **Concluído**.
-    - Checkbox para marcar/desmarcar conclusão sem excluir.
-    - Indicador de importância (Alta, Média, Baixa).
-    - Ordenação por importância e data limite, com preferência salva.
+**Main task list:**
+- Shows tasks with **Active** or **Completed** status.
+- Checkbox to mark or unmark completion without deleting.
+- Importance indicator (High, Medium, Low).
+- Sorting by importance and due date, with the preference saved.
 
-- **CRUD de Tarefas**
-    - **Criar** nova tarefa (título, descrição, data, importância).
-    - **Editar** tarefa existente.
-    - **Visualizar Detalhes** em modo somente leitura.
-    - **Excluir** (soft delete, status `DELETED`).
+**Task CRUD:**
+- **Create** a task (title, description, date, importance).
+- **Edit** an existing task.
+- **View details** in read-only mode.
+- **Delete** (soft delete, status `DELETED`).
 
-- **Histórico de Tarefas Excluídas**
-    - Tela dedicada que lista apenas tarefas com status `DELETED`.
-    - **Clique longo** em um item abre menu de contexto:
-        - **Reativar tarefa** (status volta a `ACTIVE`).
-        - **Detalhes** (abre `TaskDetailActivity` em modo leitura).
+**Deleted tasks history:**
+- A dedicated screen lists only tasks with status `DELETED`.
+- **Long press** an item to open a context menu: **Reactivate** (status goes back to `ACTIVE`) or **Details** (opens `TaskDetailActivity` in read-only mode).
 
-- **Sincronização e Suporte Offline**
-    - Persistência local e cache automático via `FirebaseDatabase.setPersistenceEnabled(true)`.
-    - Operações de leitura/escrita funcionam mesmo sem conexão, sincronizando quando online.
+**Sync and offline support:**
+- Local persistence and automatic cache through `FirebaseDatabase.setPersistenceEnabled(true)`.
+- Reads and writes work without a connection and sync when you are back online.
 
-- **Feedback e Validação**
-    - Toasts e diálogos de confirmação para salvar, excluir ou descartar alterações.
-    - Validação de campos: título (máx. 50 caracteres), descrição (máx. 250), data (não permite passado).
+**Feedback and validation:**
+- Toasts and confirmation dialogs for saving, deleting or discarding changes.
+- Field validation: title (max 50 characters), description (max 250), date (past dates not allowed).
 
-## Video Exemplo
+## Demo video
 
-[https://youtu.be/gLL4KoyGocI](https://youtu.be/xFnd6h0Tuuo)
+[Watch the demo](https://youtu.be/xFnd6h0Tuuo)
 
 ## Screenshots
 
-**Tela Login**  
+**Login**  
 ![Login](./readme_assets/Screenshot_103.png)
 
-**Tela Register**  
-![Registro](./readme_assets/Screenshot_104.png)
+**Register**  
+![Register](./readme_assets/Screenshot_104.png)
 
-**Tela Principal**  
-![Lista de Tarefas](./readme_assets/Screenshot_105.png)
+**Main screen**  
+![Task list](./readme_assets/Screenshot_105.png)
 
-**Adicionar Nova Tarefa**  
-![Adicionar Nova Tarefa](./readme_assets/Screenshot_106.png)
+**Add a new task**  
+![Add a new task](./readme_assets/Screenshot_106.png)
 
-**Ordenar Tarefas**  
-![Ordenar Tarefas](./readme_assets/Screenshot_107.png)
+**Sort tasks**  
+![Sort tasks](./readme_assets/Screenshot_107.png)
 
-**Tarefas Excluidas**  
-![Tela_Tarefa_Excluida](./readme_assets/Screenshot_108.png)
+**Deleted tasks (empty)**  
+![Deleted tasks screen](./readme_assets/Screenshot_108.png)
 
-**Tarefa Adicionada**  
-![Lista_Com_Tarefas](./readme_assets/Screenshot_109.png)
+**Task added**  
+![List with tasks](./readme_assets/Screenshot_109.png)
 
-**Tela de Tarefas Excluídas (Com Task)**  
-![Tarefas Excluídas](./readme_assets/Screenshot_110.png)
+**Deleted tasks (with tasks)**  
+![Deleted tasks](./readme_assets/Screenshot_110.png)
 
-## Instruções de Execução
+## Getting started
 
-1. Clone o repositório  
-   git clone https://github.com/Alan-VSouza/PersonalTasks.git
+1. Clone the repository:
 
-2. Abra o projeto no Android Studio (4.2+ recomendado).
-3. Certifique-se de que o `minSdk` está em 26 ou superior.
-4. Configure o arquivo `google-services.json` na pasta `app/`.
-5. Sincronize o Gradle e execute em emulador ou dispositivo Android (API 26+).
-
-## Instruções de Uso
-
-1. **Login**  
-   Cadastre-se ou faça login com e-mail e senha via Firebase.
-
-2. **Tela Principal**
-- Tarefas ativas e concluídas aparecem em `RecyclerView`.
-- Ícone “+” para adicionar nova tarefa.
-- Clique longo em tarefa → menu com “Detalhes”, “Editar” ou “Excluir”.
-- Checkbox para marcar/desmarcar conclusão diretamente.
-
-3. **Detalhes/Edição/Exclusão**
-- **Detalhes**: modo somente leitura.
-- **Editar**: campos habilitados para alteração.
-- **Excluir**: confirmação antes de remover (soft delete).
-
-4. **Histórico de Excluídas**
-- Acesse pelo menu superior → “Tarefas Excluídas”.
-- Clique longo em item → menu com “Reativar” ou “Detalhes”.
-
-5. **Ordenação**
-- Ícone de ordenação no menu superior: “Mais importante primeiro” ou “Menos importante primeiro”.
-- Preferência salva em `SharedPreferences`.
-
-## Arquitetura
-
-O app adota **MVVM** com separação de camadas:
-
-- **Model**: classe `Task` (com construtor vazio para Firebase).
-- **ViewModel**: `TaskViewModel` expõe `LiveData<List<Task>>` para ativos e excluídos.
-- **Repository**: `FirebaseTaskRepository` abstrai operações CRUD no Firebase.
-- **View**: Activities (`MainActivity`, `TaskDetailActivity`, `DeletedTasksActivity`), usando ViewBinding.
-
-## Regras de Segurança (Realtime Database)
-
-No Console Firebase → Realtime Database → Regras:
+```bash
+git clone https://github.com/Alan-VSouza/PersonalTasks.git
 ```
+
+2. Open the project in Android Studio (4.2+ recommended).
+3. Make sure `minSdk` is 26 or higher.
+4. Add your own `google-services.json` file to the `app/` folder (Firebase Console, project settings).
+5. Sync Gradle and run on an emulator or device (API 26+).
+
+## Usage
+
+1. **Login:** register or sign in with email and password through Firebase.
+
+2. **Main screen:**
+- Active and completed tasks appear in a `RecyclerView`.
+- Use the "+" icon to add a task.
+- Long press a task for a menu with "Details", "Edit" or "Delete".
+- Use the checkbox to mark or unmark completion directly.
+
+3. **Details, editing and deletion:**
+- **Details:** read-only mode.
+- **Edit:** fields enabled for changes.
+- **Delete:** asks for confirmation before removing (soft delete).
+
+4. **Deleted tasks history:**
+- Open it from the top menu, under "Deleted tasks".
+- Long press an item for a menu with "Reactivate" or "Details".
+
+5. **Sorting:**
+- Use the sort icon in the top menu: "Most important first" or "Least important first".
+- The preference is saved in `SharedPreferences`.
+
+## Architecture
+
+The app uses **MVVM** with separated layers:
+
+- **Model:** `Task` class (with an empty constructor for Firebase).
+- **ViewModel:** `TaskViewModel` exposes `LiveData<List<Task>>` for active and deleted tasks.
+- **Repository:** `FirebaseTaskRepository` abstracts the CRUD operations on Firebase.
+- **View:** Activities (`MainActivity`, `TaskDetailActivity`, `DeletedTasksActivity`) using ViewBinding.
+
+## Security rules (Realtime Database)
+
+In the Firebase Console, under Realtime Database > Rules:
+
+```json
 {
   "rules": {
     "tasks": {
@@ -130,7 +130,6 @@ No Console Firebase → Realtime Database → Regras:
 }
 ```
 
+## Contact
 
-## Contato
-
-Dúvidas ou sugestões, envie e-mail para **alansouzeesi@gmail.com**.
+Questions or suggestions: **alansouzeesi@gmail.com**.
